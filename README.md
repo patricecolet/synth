@@ -16,7 +16,7 @@ schémas, firmware et patchs vivent dans le même dossier.
 | [`alimentation/`](alimentation/) | Alimentation symétrique LM723 / LM2596 + masse virtuelle |
 | [`xva1/`](xva1/) | Patchs Pd de contrôle pour le moteur XVA1 |
 | [`experiments/`](experiments/) | Bancs d'essai : DAC MCP4822 / MCP4921, driver TLC5940, LFO |
-| [`reference/`](reference/) | Datasheets et schémas glanés — matière première, pas du code |
+| [`reference/`](reference/) | Datasheets et schémas glanés — matière première, **non versionnée** (voir ci-dessous) |
 
 ## Détail
 
@@ -62,6 +62,26 @@ Le brochage du connecteur P1 du Kobol est relevé dans
 `XVA1.pd` et `comUI.pd` sont deux états du même patch (seules diffèrent des
 valeurs de sliders sauvegardées). `paramUI.pd` est l'abstraction qu'ils
 instancient.
+
+## Documentation tierce
+
+Le dépôt ne contient **que du travail original**. Les datasheets constructeur,
+manuels de service et schémas de synthés commerciaux ne sont pas
+redistribuables : ils restent sur le disque local mais sont exclus du suivi
+git. Concrètement, un clone trouvera vides :
+
+- `reference/datasheets/`, `reference/kobol/`, `reference/analog-synth/`
+- les schémas et PDF de `alimentation/`
+
+Chaque README de dossier liste ce qu'il faut retélécharger et auprès de qui —
+voir [`reference/README.md`](reference/README.md) et
+[`alimentation/README.md`](alimentation/README.md). Mes propres relevés
+(`Plug.txt`, `missing.txt`, `CONSOMATION.txt`, `goldpoint_capa.txt`) sont bien
+versionnés, eux.
+
+Ces fichiers restent présents dans les deux premiers commits. Pour purger
+complètement l'historique avant une publication, il faudra réécrire les
+commits (`git filter-repo`), ce qui n'a pas été fait.
 
 ## Conventions
 

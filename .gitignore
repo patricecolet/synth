@@ -29,6 +29,34 @@ build/
 *.swp
 *~
 
+# ─────────────────────────────────────────────────────────────────────
+# Documentation tierce sous copyright
+#
+# Ces fichiers RESTENT SUR LE DISQUE, ils ne sont simplement pas
+# versionnés : datasheets constructeur, manuels de service et schémas de
+# synthés commerciaux ne sont pas redistribuables. Les sources sont
+# listées dans les README des dossiers concernés.
+#
+# Les motifs se terminent par /* (et non /) pour que les exceptions
+# ci-dessous fonctionnent : git ne descend pas dans un dossier exclu.
+# ─────────────────────────────────────────────────────────────────────
+reference/datasheets/*
+reference/kobol/*
+reference/analog-synth/*
+
+# ...sauf mes propres relevés et notes de mesure
+!reference/kobol/Plug.txt
+!reference/analog-synth/missing.txt
+
+# Alimentation : schémas glanés (LM723, LM2596, masse virtuelle Goldpoint,
+# Bipolar PSU de Dmitry Shtatnov / modularsynth.ru).
+# ATTENTION : la règle porte sur l'extension. Un schéma d'alimentation de
+# ma main devra être forcé avec `git add -f`, ou rangé sous PS-101/hardware/.
+alimentation/*.pdf
+alimentation/*.png
+alimentation/*.gif
+alimentation/*.jpg
+
 # Volontairement NON ignorés (« sans rien perdre ») :
 #   *.bak, *.kicad_pcb-bak, *.sch-bak   -> sauvegardes KiCad historiques
 #   fp-info-cache, *-cache.lib          -> caches KiCad, mais utiles pour rouvrir
