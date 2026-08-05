@@ -1,0 +1,33 @@
+Source,C:\Users\Patrice\Documents\electronique\synth\PS-01\PS-01_VCO\PS-01_VCO.sch
+Kicad Rev,Eeschema 4.0.7
+Generated Date,12/10/2019 17:05:21
+
+Title,Not Set
+Company,Not Set
+Revision,Not Set
+Date Issue,Not Set
+
+Reference,Value,view,Library,Library Ref
+U1,AS3340,audio,AS3340
+JP1,tune,device,Jumper_NO_Small
+R1,1K62,device,R
+P1,500ohm,500,device,POT
+C1,560p,device,C
+R2,22K,device,R
+P2,500,device,POT
+C2,1nF,device,C
+R4,1M8,device,R
+R3,470ohm,470,device,R
+C3,10nF,device,C
+R5,220K,device,R
+P3,100K,device,POT
+C4,10nF,device,C
+R6,470Ohm,470,device,R
+R7,100K,device,R
+R8,100K,device,R
+R10,5K6,device,R
+R9,18K,device,R
+P4,5K,device,POT
+R11,5K6,device,R
+J1,T1,conn,TEST_1P
+J2,T2,conn,TEST_1P

@@ -1,0 +1,15 @@
+Resistances:
+1.82K
+1.8M
+470
+51K
+820
+5.6K
+22K
+24K
+360K
+220K
+
+trimmer precision
+10K
+20K

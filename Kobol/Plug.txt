@@ -1,0 +1,35 @@
+Kobol expander P1
+1 VCF Freq
+2 VCF ADS Decay
+3 Vol VCO 1
+4 F VCO 1
+5 ? (Res)
+6 F VCO 2
+7 VCF ADS Cont
+8 Vol VCO 2
+9 VCA ADS Sustain
+10 Cont WAV 1
+11 VCF ADS Sustain
+12 VCF ADS Attack
+13 VCA ADS Decay
+14 VCA ADS Attack
+15 Cont WAV 2
+16 VCF Key cont
+
+Kobol expander P7
+1 ? (VCA Decay)
+2 LFO Rate
+3 VCO1 WAV
+4 VCF Sustain
+5 VCA Attack
+6 VCO2 WAV
+7 ? (VCF Decay)
+8 ? (VCF Attack)
+9 Vol VCO2
+10 VCF ADS Cont
+11 F VCO 2
+12 Res
+13 F VCO 1 0 / 1
+14 Vol VCO 1 0 / 2
+15 VCF Freq -0.2 / 1.5
+16 VCA Sustain

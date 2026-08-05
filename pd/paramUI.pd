@@ -1,0 +1,42 @@
+#N canvas 1368 516 439 369 10;
+#X obj 101 118 vsl 48 128 0 255 0 0 empty empty empty 0 -9 0 10 -262144
+-1 -1 12700 0;
+#X obj 103 100 hsl 45 15 1 1 0 0 empty empty empty -2 -8 0 10 -262144
+-1 -1 0 1;
+#X obj 101 101 cnv 15 50 15 empty empty \$1 2 7 0 12 -261019 -66577
+0;
+#X obj 244 322 list prepend \$2;
+#X obj 3 10 r comctl-s;
+#X obj 3 29 route \$2;
+#X obj 3 48 list split 1;
+#X obj 44 158 change;
+#X obj 30 196 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144 -1
+-1;
+#X msg 69 131 0;
+#X obj 3 69 spigot 1;
+#X obj 10 221 del 1000;
+#X msg 14 132 1;
+#X msg 96 78 set \$1;
+#X obj 222 154 bang;
+#X obj 244 301 list prepend 0;
+#X obj 178 264 i;
+#X obj 244 348 s slider;
+#X connect 0 0 7 0;
+#X connect 0 0 16 0;
+#X connect 1 0 14 0;
+#X connect 3 0 17 0;
+#X connect 4 0 5 0;
+#X connect 5 0 6 0;
+#X connect 6 0 10 0;
+#X connect 7 0 8 0;
+#X connect 7 0 9 0;
+#X connect 8 0 11 0;
+#X connect 9 0 10 1;
+#X connect 10 0 13 0;
+#X connect 11 0 12 0;
+#X connect 12 0 10 1;
+#X connect 13 0 0 0;
+#X connect 14 0 16 0;
+#X connect 15 0 3 0;
+#X connect 16 0 15 0;
+#X coords 0 -1 1 1 50 150 2 100 100;

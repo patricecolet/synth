@@ -1,0 +1,3 @@
+C1 - 470uF/50V** - Panasonic P/N EEU-FM1H471
+C2, C3 - 22uF/50V - Panasonic P/N EEU-FM1H220
+C4, C5 - 1000uF/25V** - Panasonic P/N EEU-FM1E102

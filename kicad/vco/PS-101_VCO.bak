@@ -1,0 +1,184 @@
+EESchema Schematic File Version 2
+LIBS:power
+LIBS:device
+LIBS:switches
+LIBS:relays
+LIBS:motors
+LIBS:transistors
+LIBS:conn
+LIBS:linear
+LIBS:regul
+LIBS:74xx
+LIBS:cmos4000
+LIBS:adc-dac
+LIBS:memory
+LIBS:xilinx
+LIBS:microcontrollers
+LIBS:dsp
+LIBS:microchip
+LIBS:analog_switches
+LIBS:motorola
+LIBS:texas
+LIBS:intel
+LIBS:audio
+LIBS:interface
+LIBS:digital-audio
+LIBS:philips
+LIBS:display
+LIBS:cypress
+LIBS:siliconi
+LIBS:opto
+LIBS:atmel
+LIBS:contrib
+LIBS:valves
+LIBS:PS-101-cache
+EELAYER 25 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 1 2
+Title ""
+Date ""
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Sheet
+S 3700 1550 1650 1000
+U 5DB0908D
+F0 "vco" 60
+F1 "vco.sch" 60
+F2 "pwm_out" O R 5350 1700 60 
+F3 "sawtooth_out" O R 5350 1900 60 
+F4 "triangle_out" O R 5350 2100 60 
+F5 "pulsewidth" I L 3700 1700 60 
+F6 "cv_in" I L 3700 1900 60 
+$EndSheet
+Wire Wire Line
+	2750 1500 3000 1500
+Wire Wire Line
+	3000 1500 3000 1900
+Wire Wire Line
+	3000 1900 3700 1900
+Wire Wire Line
+	2750 1400 3100 1400
+Wire Wire Line
+	3100 1400 3100 1700
+Wire Wire Line
+	3100 1700 3700 1700
+Wire Wire Line
+	6400 1600 6150 1600
+Wire Wire Line
+	6150 1600 6150 2100
+Wire Wire Line
+	6150 2100 5350 2100
+Wire Wire Line
+	6400 1500 6000 1500
+Wire Wire Line
+	6000 1500 6000 1900
+Wire Wire Line
+	6000 1900 5350 1900
+Wire Wire Line
+	5350 1700 5800 1700
+Wire Wire Line
+	5800 1700 5800 1400
+Wire Wire Line
+	5800 1400 6400 1400
+Wire Wire Line
+	2750 1300 6400 1300
+Wire Wire Line
+	2750 1200 6400 1200
+Wire Wire Line
+	2750 1100 6400 1100
+$Comp
+L VCC #PWR01
+U 1 1 5DB599D5
+P 3600 900
+F 0 "#PWR01" H 3600 750 50  0001 C CNN
+F 1 "VCC" H 3600 1050 50  0000 C CNN
+F 2 "" H 3600 900 50  0001 C CNN
+F 3 "" H 3600 900 50  0001 C CNN
+	1    3600 900 
+	1    0    0    -1  
+$EndComp
+$Comp
+L GND #PWR02
+U 1 1 5DB59A56
+P 3350 1300
+F 0 "#PWR02" H 3350 1050 50  0001 C CNN
+F 1 "GND" H 3350 1150 50  0000 C CNN
+F 2 "" H 3350 1300 50  0001 C CNN
+F 3 "" H 3350 1300 50  0001 C CNN
+	1    3350 1300
+	1    0    0    -1  
+$EndComp
+$Comp
+L VSS #PWR03
+U 1 1 5DB59A8C
+P 4150 900
+F 0 "#PWR03" H 4150 750 50  0001 C CNN
+F 1 "VSS" H 4150 1050 50  0000 C CNN
+F 2 "" H 4150 900 50  0001 C CNN
+F 3 "" H 4150 900 50  0001 C CNN
+	1    4150 900 
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3600 900  3600 1100
+Connection ~ 3600 1100
+Wire Wire Line
+	4150 900  4150 1200
+Connection ~ 4150 1200
+Connection ~ 3350 1300
+$Comp
+L PWR_FLAG #FLG04
+U 1 1 5DB59C1A
+P 3800 900
+F 0 "#FLG04" H 3800 975 50  0001 C CNN
+F 1 "PWR_FLAG" H 3800 1050 50  0000 C CNN
+F 2 "" H 3800 900 50  0001 C CNN
+F 3 "" H 3800 900 50  0001 C CNN
+	1    3800 900 
+	1    0    0    -1  
+$EndComp
+$Comp
+L PWR_FLAG #FLG05
+U 1 1 5DB59C52
+P 4500 900
+F 0 "#FLG05" H 4500 975 50  0001 C CNN
+F 1 "PWR_FLAG" H 4500 1050 50  0000 C CNN
+F 2 "" H 4500 900 50  0001 C CNN
+F 3 "" H 4500 900 50  0001 C CNN
+	1    4500 900 
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3600 900  3800 900 
+Wire Wire Line
+	4150 900  4500 900 
+$Comp
+L Conn_01x05_Male J1
+U 1 1 5DB58E29
+P 2550 1300
+F 0 "J1" H 2550 1600 50  0000 C CNN
+F 1 "Conn_01x05_Male" H 2550 1000 50  0000 C CNN
+F 2 "Pin_Headers:Pin_Header_Straight_1x05_Pitch2.54mm" H 2550 1300 50  0001 C CNN
+F 3 "" H 2550 1300 50  0001 C CNN
+	1    2550 1300
+	1    0    0    -1  
+$EndComp
+$Comp
+L Conn_01x06_Female J?
+U 1 1 5DB5A943
+P 6600 1300
+F 0 "J?" H 6600 1600 50  0000 C CNN
+F 1 "Conn_01x06_Female" H 6600 900 50  0000 C CNN
+F 2 "" H 6600 1300 50  0001 C CNN
+F 3 "" H 6600 1300 50  0001 C CNN
+	1    6600 1300
+	1    0    0    -1  
+$EndComp
+$EndSCHEMATC
