@@ -77,3 +77,9 @@ KobolExpanderControl/
 
 ---
 *Projet ambitieux pour la communauté des synthés vintage*
+
+## Travail en cours
+
+Le firmware actif est dans [`midi-cv/`](midi-cv/) — carte MIDI dans
+[`midi-cv/MIDI_MAP.md`](midi-cv/MIDI_MAP.md). `v1-first-release/` reste la
+référence fonctionnelle et n'est pas modifié.
