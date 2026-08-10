@@ -16,14 +16,14 @@ Canal MIDI : **1** par défaut.
 
 ## 1. Notes et jeu
 
-| Fonction | Message | Sortie matérielle | Statut v1 |
-|---|---|---|---|
-| Pitch CV | Note On/Off | DAC canal A, 1V/oct | ✅ fait |
-| Gate | Note On/Off | broche numérique | ✅ fait |
-| Gate forcé | CC 100 → **CC 118** | idem | ⚠️ à renuméroter |
-| Portamento (glide) | **CC 5** — Portamento Time | interpolé logiciel (`Ramp.h`) | ✅ fait, standard |
-| Portamento on/off | **CC 65** | idem | ➕ à ajouter |
-| Pitch bend | Pitch Bend | s'ajoute au pitch CV | ➕ à ajouter |
+| Fonction | Message | Sortie matérielle |
+|---|---|---|
+| Pitch CV | Note On/Off | PWM → pin 11, exponentiel |
+| Gate | Note On/Off | `GPIO_GATE`, jack façade |
+| Gate forcé | **CC 118** | idem |
+| Portamento (glide) | **CC 5** — Portamento Time | interpolé logiciel |
+| Portamento on/off | **CC 65** | idem |
+| Pitch bend | Pitch Bend | ±2 demi-tons, s'ajoute au pitch |
 
 `CC 100` utilisé par la v1 est en réalité le **RPN LSB** officiel : tout clavier
 émettant des RPN déclencherait le gate. À déplacer vers CC 118.
@@ -57,10 +57,19 @@ VCA passe donc en zone libre.
 |---|---|---|---|
 | VCO1 Volume | **108** | 14 | +0,13 → +0,60 V |
 | VCO2 Volume | **109** | 9 | 0 → +0,61 V |
-| VCO1 Freq | **110** | 13 | ⚠️ **0 V constant** — voir §6 |
-| VCO2 Freq | **111** | 11 | ⚠️ **0 V constant** — voir §6 |
+| **VCO2 Freq — le pitch** | *piloté par les notes* | 11 | **−1,532 → +1,532 V, exponentiel** ✅ |
+| VCO1 Freq | — | 13 | réglage manuel, par choix |
 | VCO1 Waveform | **112** | 3 | ⚠️ **0 V constant** — voir §6 |
 | VCO2 Waveform | **113** | 6 | ⚠️ **0 V constant** — voir §6 |
+
+Le pitch passe par la **pin 11**, validée au test d'injection : point neutre à
+−22 mV, plage ±1532 mV, réponse exponentielle. Elle n'a pas de CC — elle suit
+les notes MIDI, le pitch bend et le portamento. Combien de millivolts font une
+octave n'a jamais été mesuré : voir [`CALIBRATION.md`](CALIBRATION.md), c'est le
+premier réglage à faire.
+
+La **pin 13** (VCO1 Freq) est laissée au potard de façade, choix acté dans
+`vco_injection_test.md`. Le CC 110 reste donc libre.
 
 ## 5. LFO
 
@@ -100,23 +109,24 @@ Le seul paramètre du firmware v1 qui ne passe pas par le DAC est justement le
 LFO Rate (PWM sur `PIN_C7`). À vérifier physiquement sur quelle pin il arrive
 avant de reproduire ce câblage.
 
-### Quatre paramètres mesurent 0 V constant
+### Les pins à 0 V : résolu pour le pitch, ouvert pour les waveforms
 
-Pins 3, 6, 11, 13 — VCO1/VCO2 Waveform et VCO1/VCO2 Freq — ne bougent pas quand
-on tourne le potard correspondant. Ce sont les paramètres les plus importants
-musicalement : sans le pitch, il n'y a pas d'interface MIDI.
+Les pins 3, 6, 11, 13 mesurent 0 V quel que soit le potard. **Le test
+d'injection tranche la question** : ce sont des *entrées* CV à haute impédance,
+qui reposent à 0 V tant que rien ne les pilote. Un multimètre ne peut rien y
+lire — il faut y injecter une tension et écouter.
 
-Deux lectures possibles, à trancher à l'oscilloscope :
+C'est ce qui a été fait sur la pin 11, avec une pile variable : elle répond
+parfaitement, de −1532 à +1532 mV, en exponentiel. **Le pitch n'est donc pas
+bloqué.**
 
-- **Ce sont des entrées CV pures**, à haute impédance, qui reposent à 0 V tant
-  que rien ne les pilote. C'est cohérent pour les pins 3 et 6, dont l'analyse du
-  schéma ne montre aucune branche vers un potard de façade.
-- **L'affectation des pins est fausse.** Les pins 11 et 13 sont censées être
-  reliées à un potard (`R78,7 kΩ → Potard Freq`) : elles devraient donc varier.
-  La pin 15 est dans le cas inverse — aucun potard au schéma, et pourtant elle
-  varie de 0 à 0,9 V.
+Restent ouvertes les **pins 3 et 6** (waveforms VCO1/VCO2), sur lesquelles le
+même test d'injection n'a pas encore été fait. C'est la manipulation à refaire
+en priorité, et elle ne demande qu'une pile et un potentiomètre — pas
+l'oscilloscope.
 
-Tant que ce n'est pas tranché, les CC 110-113 sont réservés mais non câblables.
+La **pin 13** (VCO1 Freq) n'est pas un problème mais un choix : réglage manuel
+au potard de façade.
 
 ### La pin 8 varie de façon non monotone
 
@@ -144,13 +154,32 @@ cutoff sur le rail d'alimentation. À résoudre avant de sertir quoi que ce soit
 
 Les plages utiles font moins de 1 V crête, centrées de manière variable :
 certaines pins sont unipolaires positives (4, 9, 10, 14, 15, 16), d'autres
-franchement négatives (1, 5, 7, 8), une bipolaire (12, résonance).
+franchement négatives (1, 5, 7, 8), une bipolaire (12, résonance), et le pitch
+va de −1,5 à +1,5 V.
 
-Le MCP4822 sort 0 → 4,096 V en gain ×2. Il faut donc par pin un décalage et une
-atténuation, soit un ampli-op par canal — 16 au total. C'est la vraie charge
-matérielle du projet, et elle contredit l'hypothèse « ±2,5 V uniforme » du
-README de v2-simple : les plages relevées vont de 0,24 V (VCA Decay) à 1,28 V
-(Résonance), soit un rapport de 5 entre les deux.
+Le PWM de l'ESP32 sort 0 → 3,3 V. Il faut donc par pin un décalage et une
+atténuation. Le firmware n'utilise que deux gabarits de conditionnement,
+unipolaire et bipolaire (`COND_A_*` / `COND_B_*` dans `config.h`), et rattrape
+le reste en logiciel — chaque paramètre connaît sa propre plage utile. Cela
+évite un ampli-op réglé finement par canal, mais coûte de la résolution sur les
+plages étroites : le VCA Decay n'occupe que 240 mV sur les 3200 mV du gabarit
+bipolaire, soit 7 % de la course, donc environ 1200 pas PWM sur 16384.
+
+Reste que l'hypothèse « ±1,5 V uniforme » du README de v2-simple ne tient pas
+telle quelle : les plages relevées vont de 0,24 V (VCA Decay) à 1,28 V
+(Résonance), un rapport de 5.
+
+### L'ESP32-S3 n'a que 8 canaux PWM
+
+Le LEDC de l'ESP32-S3 offre **8 canaux** (4 timers, pas de mode grande vitesse).
+L'ESP32 d'origine en avait 16, ce qui explique le « 16× PWM natifs » annoncé
+dans `v3-advanced/README.md` — vrai pour l'ESP32 classique, faux pour le S3.
+
+Il faut 12 sorties. Le firmware sert donc le pitch en premier, puis les
+paramètres dans l'ordre de la table, et signale au démarrage lesquels sont
+restés muets. Pour les 4 manquants il faudra soit un DAC externe en SPI
+(MCP4822 en chaîne), soit un PCA9685, soit le MCPWM du S3 qui apporte 6 canaux
+de plus.
 
 ---
 
@@ -164,6 +193,11 @@ README de v2-simple : les plages relevées vont de 0,24 V (VCA Decay) à 1,28 V
 | 114-117 | Profondeurs de modulation logicielle |
 | 118 | Gate forcé |
 
-**24 contrôleurs** au total : 20 câblés sur le connecteur, 4 purement logiciels.
-Sur les 20, **6 sont bloqués** par les mesures ci-dessus (LFO Rate, les 4 VCO,
-VCF Key follow) et 1 est douteux (VCF Attack).
+**23 contrôleurs**, plus le pitch piloté par les notes.
+
+| | Nombre |
+|---|---|
+| Sorties CV implémentées dans le firmware | **12** (11 CC + le pitch) |
+| Bloqués faute de mesure | **3** — waveforms VCO1/VCO2, LFO Rate |
+| Laissés au potard, par choix | **1** — VCO1 Freq |
+| Interdit | **1** — pin 2, rail −14,5 V |
