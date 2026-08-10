@@ -27,6 +27,7 @@ MIDI_CREATE_INSTANCE(Adafruit_USBD_MIDI, usb_midi, MIDI);
 // ─────────────────────────────────────────────────────────────────────
 
 static uint8_t cc_value[PARAM_COUNT];   // dernier CC reçu par paramètre
+static bool    cc_seen[PARAM_COUNT];    // ce CC est-il déjà arrivé ?
 
 // Pile de notes : priorité à la dernière jouée, retour à la précédente au
 // relâchement. La v1 ne gardait qu'une note et perdait le legato.
@@ -39,6 +40,8 @@ static bool    gate_forced     = false;
 
 static float   pitch_current_mv = CAL_NEUTRAL_MV;  // suit le portamento
 static float   pitch_target_mv  = CAL_NEUTRAL_MV;
+// Portamento à zéro au démarrage : les notes sautent, pas de glide. Il ne
+// s'active que si un CC 5 non nul arrive.
 static uint16_t portamento_ms   = 0;
 static bool    portamento_on    = true;
 static uint32_t last_update_us  = 0;
@@ -80,6 +83,9 @@ static int32_t ccToMv(const KobolParam& p, int32_t cc) {
 // Applique un paramètre en tenant compte des modulations qui le visent.
 static void applyParam(uint8_t i) {
   if (!outputIsLive(i)) return;
+  // Tant que le CC n'est pas venu, on ne touche pas à la pin : le potard de
+  // façade garde la main et le Kobol sonne comme sans la carte.
+  if (!cc_seen[i]) return;
   const KobolParam& p = PARAMS[i];
 
   int32_t cc = cc_value[i];
@@ -191,6 +197,7 @@ static void onControlChange(byte channel, byte control, byte value) {
   const int8_t idx = paramIndexForCC(control);
   if (idx >= 0) {
     cc_value[idx] = value;
+    cc_seen[idx]  = true;      // à partir d'ici la carte prend la main
     applyParam((uint8_t)idx);
     return;
   }
@@ -280,8 +287,11 @@ void setup() {
   Serial.printf("Sorties actives : %u\n", live);
   Serial.printf("Calibration pitch : %.1f mV/octave (A VERIFIER)\n", cal_mv_per_octave);
 
-  for (uint8_t i = 0; i < PARAM_COUNT; i++) cc_value[i] = PARAMS[i].cc_default;
-  applyAllParams();
+  // Rien n'est écrit sur les pins : le Kobol reste sous le contrôle de ses
+  // potards jusqu'au premier CC reçu. Seul le pitch est posé, à son point
+  // neutre de -22 mV, qui ne déplace pas le VCO2 (cf. vco_injection_test.md).
+  for (uint8_t i = 0; i < PARAM_COUNT; i++) { cc_value[i] = 0; cc_seen[i] = false; }
+  Serial.println(F("Pins au repos jusqu'au premier CC — potards de facade actifs"));
 
   last_update_us = micros();
 }

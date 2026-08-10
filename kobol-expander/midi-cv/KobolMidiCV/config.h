@@ -107,33 +107,43 @@ struct KobolParam {
   uint8_t     gpio;         // GPIO ESP32, ou GPIO_UNASSIGNED
   int16_t     v_min_mv;     // tension pour CC = 0
   int16_t     v_max_mv;     // tension pour CC = 127
+  int16_t     rest_mv;      // tension mesurée au repos, potard au centre
   int16_t     cond_min_mv;  // tension au connecteur à 0 % de rapport cyclique
   int16_t     cond_max_mv;  // tension au connecteur à 100 %
-  uint8_t     cc_default;   // valeur appliquée au démarrage
   ParamState  state;
   const char* name;
 };
 
-// Ordre = ordre d'initialisation. Les PARAM_OK d'abord : si les canaux
-// LEDC manquent, ce sont les moins critiques qui tombent.
+// AUCUNE valeur par défaut : le firmware n'écrit sur une pin qu'après avoir
+// reçu son CC. Le CV s'ADDITIONNE au potard de façade (connector_analysis.md :
+// « CV externe + potentiomètre = contrôle hybride »), donc écrire au démarrage
+// décalerait le réglage du Kobol avant qu'on ait touché à quoi que ce soit.
+// Tant qu'un CC n'est pas venu, la pin reste en haute impédance et le Kobol
+// sonne exactement comme sans la carte.
+//
+// rest_mv sert de repère de calibration, pas de valeur émise : c'est ce que la
+// pin porte d'elle-même, potard au centre.
+//
+// Ordre = ordre d'attribution des canaux LEDC : le plus utile en premier,
+// puisqu'il n'y en a que 8 pour 12 sorties.
 static const KobolParam PARAMS[] = {
-  // CC   pin  gpio  vmin   vmax   condmin        condmax        def  état          nom
-  {  74,  15,   5,      0,   900,  COND_A_MIN_MV, COND_A_MAX_MV,  90, PARAM_CHECK,  "VCF Cutoff"    },
-  {  71,  12,   6,   -670,   610,  COND_B_MIN_MV, COND_B_MAX_MV,   0, PARAM_OK,     "VCF Resonance" },
-  {  73,   8,   7,   -660, -1150,  COND_B_MIN_MV, COND_B_MAX_MV,   0, PARAM_CHECK,  "VCF Attack"    },
-  {  75,   7,  15,  -1350,  -360,  COND_B_MIN_MV, COND_B_MAX_MV,  40, PARAM_OK,     "VCF Decay"     },
-  { 102,   4,  16,      0,   920,  COND_A_MIN_MV, COND_A_MAX_MV,  90, PARAM_OK,     "VCF Sustain"   },
-  { 103,  10,  17,     50,   600,  COND_A_MIN_MV, COND_A_MAX_MV,  64, PARAM_OK,     "VCF ADS Ctrl"  },
-  { 105,   5,  18,   -660,  -280,  COND_B_MIN_MV, COND_B_MAX_MV,   0, PARAM_OK,     "VCA Attack"    },
-  { 106,   1,  GPIO_UNASSIGNED, -1410, -1170, COND_B_MIN_MV, COND_B_MAX_MV, 40, PARAM_OK, "VCA Decay" },
-  { 107,  16,  GPIO_UNASSIGNED,   -30,   940, COND_A_MIN_MV, COND_A_MAX_MV, 100, PARAM_OK, "VCA Sustain" },
-  { 109,   9,  GPIO_UNASSIGNED,     0,   610, COND_A_MIN_MV, COND_A_MAX_MV, 100, PARAM_OK, "VCO2 Volume" },
-  { 108,  14,  GPIO_UNASSIGNED,   130,   600, COND_A_MIN_MV, COND_A_MAX_MV, 100, PARAM_CHECK, "VCO1 Volume" },
+  // CC   pin  gpio  vmin   vmax   repos  condmin        condmax        état          nom
+  {  74,  15,   5,      0,   900,      0, COND_A_MIN_MV, COND_A_MAX_MV, PARAM_CHECK,  "VCF Cutoff"    },
+  {  71,  12,   6,   -670,   610,    600, COND_B_MIN_MV, COND_B_MAX_MV, PARAM_OK,     "VCF Resonance" },
+  {  73,   8,   7,   -660, -1150,   -520, COND_B_MIN_MV, COND_B_MAX_MV, PARAM_CHECK,  "VCF Attack"    },
+  {  75,   7,  15,  -1350,  -360,  -1270, COND_B_MIN_MV, COND_B_MAX_MV, PARAM_OK,     "VCF Decay"     },
+  { 102,   4,  16,      0,   920,    440, COND_A_MIN_MV, COND_A_MAX_MV, PARAM_OK,     "VCF Sustain"   },
+  { 103,  10,  17,     50,   600,    590, COND_A_MIN_MV, COND_A_MAX_MV, PARAM_OK,     "VCF ADS Ctrl"  },
+  { 105,   5,  18,   -660,  -280,   -500, COND_B_MIN_MV, COND_B_MAX_MV, PARAM_OK,     "VCA Attack"    },
+  { 106,   1,  GPIO_UNASSIGNED, -1410, -1170,  -90, COND_B_MIN_MV, COND_B_MAX_MV, PARAM_OK, "VCA Decay" },
+  { 107,  16,  GPIO_UNASSIGNED,   -30,   940,  460, COND_A_MIN_MV, COND_A_MAX_MV, PARAM_OK, "VCA Sustain" },
+  { 109,   9,  GPIO_UNASSIGNED,     0,   610,  600, COND_A_MIN_MV, COND_A_MAX_MV, PARAM_OK, "VCO2 Volume" },
+  { 108,  14,  GPIO_UNASSIGNED,   130,   600,    0, COND_A_MIN_MV, COND_A_MAX_MV, PARAM_CHECK, "VCO1 Volume" },
 
   // Bloqués — voir MIDI_MAP.md §6. Jamais émis, même si un GPIO est posé.
-  { 112,   3,  GPIO_UNASSIGNED, 0, 0, COND_A_MIN_MV, COND_A_MAX_MV, 0, PARAM_BLOCKED, "VCO1 Waveform" },
-  { 113,   6,  GPIO_UNASSIGNED, 0, 0, COND_A_MIN_MV, COND_A_MAX_MV, 0, PARAM_BLOCKED, "VCO2 Waveform" },
-  {  76, 255,  GPIO_UNASSIGNED, 0, 0, COND_A_MIN_MV, COND_A_MAX_MV, 0, PARAM_BLOCKED, "LFO Rate"      },
+  { 112,   3,  GPIO_UNASSIGNED, 0, 0, 0, COND_A_MIN_MV, COND_A_MAX_MV, PARAM_BLOCKED, "VCO1 Waveform" },
+  { 113,   6,  GPIO_UNASSIGNED, 0, 0, 0, COND_A_MIN_MV, COND_A_MAX_MV, PARAM_BLOCKED, "VCO2 Waveform" },
+  {  76, 255,  GPIO_UNASSIGNED, 0, 0, 0, COND_A_MIN_MV, COND_A_MAX_MV, PARAM_BLOCKED, "LFO Rate"      },
 };
 
 static const uint8_t PARAM_COUNT = sizeof(PARAMS) / sizeof(PARAMS[0]);
