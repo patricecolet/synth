@@ -27,7 +27,7 @@ DAW / VST ─ USB MIDI ─ Teensy 2.0 ─ SPI ─ MCP4822 ─┬─ canal A ─ 
 | **Carte MIDI, lisible** | [`midi-map.json`](midi-map.json) — source unique firmware + VST |
 | **Carte MIDI, lue** | [`MIDI_MAP.md`](MIDI_MAP.md) — 23 CC + le pitch |
 | **Cohérence** | `python3 tools/check_map.py` |
-| **Calibration** | [`CALIBRATION.md`](CALIBRATION.md) — **à faire avant de jouer** |
+| **Calibration** | [`CALIBRATION.md`](CALIBRATION.md) — échelle reprise de la v1, rien à régler |
 | **Firmware** | `KobolMidiCV/` — écrit, jamais compilé ni testé sur cible |
 | **VST** | pas commencé |
 | **Séquenceur** | pas commencé |
@@ -62,12 +62,11 @@ Le firmware est en **arithmétique entière** : l'ATmega32U4 n'a pas de FPU et
 
 ## Ce qui reste à faire
 
-### Avant de jouer
+### D'abord
 
-1. **Calibrer le pitch.** La v1 avait un bug d'échelle — 400 mV/octave au lieu
-   de 1000, soit une octave qui sonnait comme une quarte. Le nouveau firmware
-   part sur la valeur théorique, à vérifier à l'accordeur :
-   [`CALIBRATION.md`](CALIBRATION.md).
+1. **Compiler et téléverser**, puis vérifier que le pitch sonne comme avec la
+   v1 : l'échelle en est reprise à l'identique, vérifiée au millivolt près sur
+   toute la plage MIDI. Puis contrôler que CC 74 pilote bien le cutoff.
 
 ### Si un jour on branche le connecteur P1
 

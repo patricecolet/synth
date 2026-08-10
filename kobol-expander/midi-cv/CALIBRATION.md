@@ -1,29 +1,31 @@
 # Calibration
 
-À faire **avant toute utilisation musicale**. Le firmware sort avec une valeur
-de pitch théorique, jamais vérifiée sur ta machine.
+Le firmware reprend l'échelle de pitch de la v1, qui tourne dans le Teensy et
+sonne juste. Il n'y a donc **rien à régler pour démarrer** — cette page sert à
+confirmer l'accord, et à savoir quoi toucher si un jour ça dérive.
 
-## Le bug d'échelle de la v1
+## L'échelle vient de la v1, qui fonctionne
 
-`v1-first-release/kobolDAC.ino` pose :
+`v1-first-release/kobolDAC.ino` tourne dans le Teensy et sonne juste. Il pose :
 
 ```c
 noteVoltage = 4000 * (float) note / 120.0;
 ```
 
-Soit 4000 unités DAC pour 120 demi-tons, c'est-à-dire **33,3 unités par
-demi-ton**. Le MCP4822 en gain ×2 sort 1 mV par unité, donc 33,3 mV par
-demi-ton, soit **400 mV par octave**.
+Soit 4000 unités DAC pour 120 demi-tons = **33,3 mV par demi-ton**, donc
+**400 mV par octave** (le MCP4822 en gain ×2 sort 1 mV par unité).
 
-Or une entrée 1 V/octave demande **1000 mV par octave**.
+Ce n'est pas du 1 V/octave, malgré ce qu'annonce le README de la v1. L'entrée
+visée est plus sensible d'un facteur 2,5. Le nouveau firmware reprend donc
+`cal_mv_per_octave = 400` et `CAL_BASE_NOTE = 0`, ce qui **reproduit la v1 au
+millivolt près sur toute la plage MIDI** — vérifié note par note de 0 à 120.
 
-La v1 jouait donc ses intervalles à 40 % de leur écart : **une octave sonnait
-comme une quarte** (400 mV ÷ 1000 = 0,4 octave = 4,8 demi-tons). C'est
-probablement passé inaperçu parce qu'on n'entend pas un décalage d'échelle en
-jouant une note à la fois — seulement en jouant deux notes distantes.
+> Ne pas « corriger » cette valeur vers 1000 au motif que l'entrée serait en
+> 1 V/oct. C'est une déduction, pas une mesure, et elle est contredite par le
+> fait que la v1 sonne juste.
 
-Le nouveau firmware part sur `cal_mv_per_octave = 1000`, valeur théorique. Reste
-à vérifier qu'elle correspond à ton exemplaire.
+La procédure ci-dessous ne sert donc qu'à **confirmer** l'accord, ou à le
+rattraper si ton exemplaire diffère.
 
 ## Procédure
 
@@ -38,7 +40,7 @@ n'est pas au repos — vérifier le câblage avant d'aller plus loin.
 
 ### 2. Mesurer l'octave réelle
 
-Joue **Do1 (note 24)**, relève la fréquence. Joue **Do2 (note 36)**, relève.
+Joue **Do3 (note 60)**, relève la fréquence. Joue **Do4 (note 72)**, relève.
 
 - Rapport **2,0** → `cal_mv_per_octave` est juste.
 - Rapport **plus petit** → la constante est trop petite.
@@ -51,8 +53,7 @@ cal_mv_per_octave_correct = cal_mv_per_octave ÷ log2(f_haut ÷ f_bas)
 ```
 
 Exemple : Do1 → 65 Hz, Do2 → 86 Hz. Le rapport vaut 1,32, soit log2(1,32) =
-0,40 octave au lieu de 1. Il faut donc diviser 1000 par 0,40 → **2500 mV/octave**.
-(C'est exactement le symptôme qu'aurait donné l'échelle de la v1.)
+0,40 octave au lieu de 1. Il faut donc diviser 400 par 0,40 → **1000 mV/octave**.
 
 Refaire la mesure après correction : deux itérations suffisent en général.
 
@@ -61,10 +62,10 @@ Refaire la mesure après correction : deux itérations suffisent en général.
 Le DAC sort 0 à 4096 mV. L'étendue jouable vaut donc
 `4096 ÷ cal_mv_per_octave` octaves à partir de `CAL_BASE_NOTE`.
 
-| `cal_mv_per_octave` | étendue | depuis Do1 (note 24) |
+| `cal_mv_per_octave` | étendue | depuis la note 0 |
 |---|---|---|
+| 400 (v1, actuel) | 10,2 octaves | toute la plage MIDI |
 | 1000 | 4,1 octaves | jusqu'à Do5 |
-| 2500 | 1,6 octave | jusqu'à Sol2 |
 
 Si l'étendue est trop courte, deux leviers : monter `CAL_BASE_NOTE` pour
 recentrer la plage sur ce que tu joues, ou ajouter un étage d'amplification
@@ -72,16 +73,20 @@ derrière le DAC.
 
 ### 4. Résolution
 
-Le MCP4822 est en 12 bits sur 4096 mV, soit **1 mV par pas**.
+Le MCP4822 est en 12 bits sur 4096 mV, soit **1 mV par pas**. À 400 mV/octave,
+un demi-ton fait 33,3 mV, donc **1 pas DAC = 3 cents**.
 
 | `cal_mv_per_octave` | mV par demi-ton | pas DAC par demi-ton | erreur max |
 |---|---|---|---|
-| 1000 | 83,3 | 83 | 6 cents |
-| 2500 | 208,3 | 208 | 2,4 cents |
+| 400 (v1, actuel) | 33,3 | 33 | 1,5 cent |
+| 1000 | 83,3 | 83 | 0,6 cent |
 
-6 cents est audible sur un accord tenu, à la limite du perceptible sur une
-mélodie. C'est la limite du 12 bits : passer au 16 bits (MCP4922 ou DAC 16
-bits) diviserait l'erreur par 16 si un jour ça gêne.
+1,5 cent d'erreur d'arrondi est inaudible — l'instabilité analogique du VCO sera
+d'un tout autre ordre. La résolution n'est pas un sujet ici.
+
+En revanche l'étendue l'est : à 400 mV/octave, les 4096 mV du DAC couvrent
+**10 octaves**, soit toute la plage MIDI. C'est confortable, mais cela veut dire
+qu'un pas DAC de travers s'entend trois fois plus qu'à 1 V/oct.
 
 ## Calibration des autres paramètres
 

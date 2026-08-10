@@ -58,19 +58,23 @@ static const int32_t  DAC_FULL_MV  = 4096;
 // Calibration du pitch
 // ─────────────────────────────────────────────────────────────────────
 //
-// En sortie jack, l'entrée est prévue 1 V/octave. La v1 posait
-// 4000 unités DAC pour 120 demi-tons, soit 4000/120 = 33,3 unités par
-// demi-ton — c'est-à-dire 400 unités (400 mV) par octave, et non 1000.
-// Autrement dit la v1 jouait ses octaves à 40 % de leur écart : une
-// octave sonnait comme une tierce mineure environ.
+// Valeur reprise de v1-first-release/kobolDAC.ino, qui tourne dans le
+// Teensy et sonne juste :
 //
-// Valeur théorique pour du 1 V/oct : 1000 mV par octave.
-// À vérifier à l'accordeur, procédure dans CALIBRATION.md.
-static int16_t cal_mv_per_octave = 1000;
+//     noteVoltage = 4000 * note / 120.0;
+//
+// soit 4000 unités DAC pour 120 demi-tons = 33,3 mV par demi-ton, donc
+// 400 mV par octave (le MCP4822 en gain ×2 sort 1 mV par unité).
+//
+// Ce n'est PAS du 1 V/octave, malgré ce qu'annonce le README de la v1.
+// L'entrée visée est plus sensible d'un facteur 2,5. La valeur ci-dessous
+// reproduit donc exactement le comportement validé à l'oreille — ne pas
+// la « corriger » vers 1000 sans avoir mesuré à l'accordeur.
+static int16_t cal_mv_per_octave = 400;
 
-// Note produisant 0 mV. Avec 1 V/oct sur 0-4,096 V on couvre 4 octaves :
-// en partant de Do1 (note 24) on monte jusqu'à Do5 (note 72).
-static const uint8_t CAL_BASE_NOTE = 24;
+// Note produisant 0 mV. La v1 part de la note 0, ce qui place la note 120
+// à 4000 mV, juste sous la pleine échelle du DAC.
+static const uint8_t CAL_BASE_NOTE = 0;
 
 // Butées dures en sortie DAC
 static const int16_t PITCH_MIN_MV = 0;

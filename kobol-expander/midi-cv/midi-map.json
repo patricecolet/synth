@@ -9,11 +9,11 @@
     "driven_by": "note",
     "output": "MCP4822 canal A",
     "p1_pin": 11,
-    "base_note": 24,
-    "mv_per_octave": 1000,
-    "calibrated": false,
+    "base_note": 0,
+    "mv_per_octave": 400,
+    "calibrated": true,
     "bend_cents_max": 200,
-    "_comment": "mv_per_octave est une valeur théorique 1 V/oct, jamais vérifiée à l'accordeur. Voir CALIBRATION.md."
+    "_comment": "Reprend v1-first-release/kobolDAC.ino, qui tourne dans le Teensy et sonne juste : 4000 unités DAC pour 120 demi-tons. Ce n'est pas du 1 V/oct malgré ce qu'annonce le README de la v1."
   },
 
   "parameters": [
