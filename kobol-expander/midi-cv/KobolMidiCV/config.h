@@ -1,171 +1,155 @@
 // config.h — Kobol Expander MIDI/CV
 //
-// Cible : ESP32-S3 VROOM N16R8 (décision de v2-simple/README.md, avril 2026)
-// Sortie : PWM 14 bits -> RC -> LM324 (gain + offset) -> connecteur P1 du Kobol
+// Cible : Teensy 2.0 (ATmega32U4) + MCP4822, câblage repris de
+//         v1-first-release/kobolDAC. L'ESP32-S3 de v2-simple reste la
+//         cible d'évolution, mais le Teensy est monté et fonctionne.
 //
-// Toutes les tensions sont en millivolts entiers, mesurées AU CONNECTEUR P1,
-// pas en sortie d'ESP32. La conversion mV -> rapport cyclique tient compte de
-// l'étage LM324 via cond_min_mv / cond_max_mv.
+// Le MCP4822 a DEUX canaux, donc deux sorties CV :
+//   canal A -> pitch
+//   canal B -> cutoff du filtre  (CC 74)
 //
-// Sources des plages : docs/measurements/p1_connector_measurements.md
-//                      docs/measurements/vco_injection_test.md
+// Les autres paramètres de la table restent décrits mais sans sortie :
+// il faudra un second MCP4822 sur un autre CS, ou passer à l'ESP32.
+//
+// Toutes les tensions sont en millivolts entiers. Pas de flottant :
+// l'AVR à 16 MHz émule le float en logiciel, c'est ~10 µs par opération.
 
 #pragma once
 #include <Arduino.h>
 
 // ─────────────────────────────────────────────────────────────────────
-// PWM
-// ─────────────────────────────────────────────────────────────────────
-
-// 14 bits = 16384 pas. Sur la plage pitch de 3108 mV, cela fait 0,19 mV
-// par pas — voir CALIBRATION.md pour ce que ça vaut en cents.
-static const uint8_t  PWM_BITS = 14;
-static const uint16_t PWM_MAX  = (1u << PWM_BITS) - 1;
-
-// Fréquence porteuse. Le filtre RC de l'étage d'adaptation (1 kΩ / 330 nF,
-// fc ≈ 480 Hz) doit la rejeter : plus elle est haute, moins il reste
-// d'ondulation. L'ESP32-S3 impose freq × 2^bits <= 80 MHz, donc 14 bits
-// plafonne à 4882 Hz.
-static const uint32_t PWM_FREQ_HZ = 4880;
-
-// ─────────────────────────────────────────────────────────────────────
-// Étage d'adaptation LM324
+// Point d'injection : jacks de façade ou connecteur P1 ?
 // ─────────────────────────────────────────────────────────────────────
 //
-// Deux gabarits, selon que la pin visée est unipolaire ou bipolaire.
-// Ce sont les tensions obtenues au connecteur pour un rapport cyclique
-// de 0 % et de 100 %. À REMESURER après montage de la carte : ces
-// valeurs sont les cibles de conception, pas des mesures.
-
-// Gabarit A — unipolaire, pour les pins qui restent positives
-static const int16_t COND_A_MIN_MV = -200;
-static const int16_t COND_A_MAX_MV = 1100;
-
-// Gabarit B — bipolaire, pour la résonance et les pins négatives
-static const int16_t COND_B_MIN_MV = -1600;
-static const int16_t COND_B_MAX_MV = 1600;
+// Les deux existent sur l'Expander et n'ont PAS la même échelle :
+//
+//   OUT_JACK  jacks CV de façade. Entrées prévues pour du CV externe,
+//             derrière une résistance série de 100 kΩ. C'est ce que fait
+//             la v1, qui sort 0-4 V du DAC sans conditionnement.
+//
+//   OUT_P1    connecteur séquenceur, en aval des résistances de
+//             protection. Plage utile ±1,5 V seulement (mesures de
+//             docs/measurements/). EXIGE un étage d'adaptation entre le
+//             DAC et le connecteur — sans lui, on injecte 4 V sur une
+//             entrée qui en attend 1,5.
+//
+// Le câblage actuel vient de la v1, donc OUT_JACK. À changer seulement
+// après avoir monté l'étage d'adaptation.
+#define KOBOL_OUTPUT_JACK 1
 
 // ─────────────────────────────────────────────────────────────────────
-// Calibration du pitch — pin 11, VCO2
+// MCP4822
 // ─────────────────────────────────────────────────────────────────────
-//
-// Le test d'injection (vco_injection_test.md) a établi par écoute :
-//   point neutre  -22 mV   (le VCO2 ne bouge pas)
-//   note grave  -1532 mV
-//   note aiguë  +1532 mV
-//   réponse EXPONENTIELLE, décrochage vers 10 Hz
-//
-// Ce qui n'a PAS été mesuré : combien de millivolts par octave. Le
-// document en déduit 155,4 mV/oct en supposant « 10 octaves sur 1554 mV »,
-// mais 1554 mV n'est que la MOITIÉ de la plage relevée (3108 mV). Si la
-// gamme complète tient dans les 3108 mV, on est à 310,8 mV/oct.
-//
-// Les deux valeurs sont des hypothèses et diffèrent d'un facteur 2 : avec
-// la mauvaise, tous les intervalles sont doublés ou divisés par deux.
-// -> à régler à l'accordeur, procédure dans CALIBRATION.md.
-static const int16_t CAL_NEUTRAL_MV   = -22;
-static const uint8_t CAL_NEUTRAL_NOTE = 60;    // Do3 au point neutre
-static float         cal_mv_per_octave = 310.8f;  // hypothèse haute, à vérifier
 
-// Butées dures, jamais dépassées quelle que soit la calibration
-static const int16_t PITCH_MIN_MV = -1532;
-static const int16_t PITCH_MAX_MV =  1532;
+// Broches Teensy 2.0, telles que câblées (cf. en-tête de kobolDAC.ino)
+static const uint8_t PIN_DAC_CS  = 0;      // B0
+// SCK = pin 1 (B1), MOSI = pin 2 (B2) : SPI matériel, gérés par SPI.h
+static const uint8_t PIN_GATE    = 6;      // D1
+static const uint8_t PIN_LFO_PWM = 10;     // C7, sortie PWM (OC4A)
 
-// Pitch bend, en demi-tons pour l'excursion maximale
-static const float PITCH_BEND_SEMITONES = 2.0f;
+static const uint8_t DAC_CH_PITCH  = 0;    // canal A
+static const uint8_t DAC_CH_CUTOFF = 1;    // canal B
+
+// 12 bits, gain ×2 sur référence interne 2,048 V -> 0 à 4,096 V.
+static const uint16_t DAC_MAX_CODE = 4095;
+static const int32_t  DAC_FULL_MV  = 4096;
 
 // ─────────────────────────────────────────────────────────────────────
-// Brochage ESP32-S3
+// Calibration du pitch
 // ─────────────────────────────────────────────────────────────────────
 //
-// ATTENTION : le LEDC de l'ESP32-S3 n'offre que 8 canaux PWM (4 timers,
-// pas de mode grande vitesse, contrairement à l'ESP32 d'origine et à ses
-// 16 canaux). v3-advanced/README.md annonce « 16 PWM natifs » — c'est vrai
-// pour l'ESP32 classique, faux pour le S3.
+// En sortie jack, l'entrée est prévue 1 V/octave. La v1 posait
+// 4000 unités DAC pour 120 demi-tons, soit 4000/120 = 33,3 unités par
+// demi-ton — c'est-à-dire 400 unités (400 mV) par octave, et non 1000.
+// Autrement dit la v1 jouait ses octaves à 40 % de leur écart : une
+// octave sonnait comme une tierce mineure environ.
 //
-// Il faut 12 sorties. Les 4 en trop sont marquées OUT_EXTERNAL et
-// resteront muettes tant qu'un DAC externe (MCP4822 en chaîne SPI, ou
-// PCA9685) n'aura pas été ajouté. output.cpp signale lesquelles au
-// démarrage.
-static const uint8_t GPIO_UNASSIGNED = 255;   // sortie non câblée
+// Valeur théorique pour du 1 V/oct : 1000 mV par octave.
+// À vérifier à l'accordeur, procédure dans CALIBRATION.md.
+static int16_t cal_mv_per_octave = 1000;
 
-static const uint8_t GPIO_GATE = 4;           // jack Gate face avant
+// Note produisant 0 mV. Avec 1 V/oct sur 0-4,096 V on couvre 4 octaves :
+// en partant de Do1 (note 24) on monte jusqu'à Do5 (note 72).
+static const uint8_t CAL_BASE_NOTE = 24;
+
+// Butées dures en sortie DAC
+static const int16_t PITCH_MIN_MV = 0;
+static const int16_t PITCH_MAX_MV = 4096;
+
+// Pitch bend, en centièmes de demi-ton pour rester en entier
+static const int16_t PITCH_BEND_CENTS_MAX = 200;   // ±2 demi-tons
 
 // ─────────────────────────────────────────────────────────────────────
 // Table des paramètres
 // ─────────────────────────────────────────────────────────────────────
 
+static const uint8_t DAC_CH_NONE = 255;    // décrit mais sans sortie
+
 enum ParamState : uint8_t {
   PARAM_OK,        // plage mesurée, pin confirmée
   PARAM_CHECK,     // pin fonctionnelle mais plage à confirmer
-  PARAM_BLOCKED,   // en attente d'oscilloscope, jamais émis
+  PARAM_BLOCKED,   // en attente de mesure, jamais émis
 };
 
 struct KobolParam {
   uint8_t     cc;           // numéro de Control Change
   uint8_t     p1_pin;       // pin du connecteur P1
-  uint8_t     gpio;         // GPIO ESP32, ou GPIO_UNASSIGNED
+  uint8_t     dac_ch;       // canal DAC, ou DAC_CH_NONE
   int16_t     v_min_mv;     // tension pour CC = 0
   int16_t     v_max_mv;     // tension pour CC = 127
-  int16_t     rest_mv;      // tension mesurée au repos, potard au centre
-  int16_t     cond_min_mv;  // tension au connecteur à 0 % de rapport cyclique
-  int16_t     cond_max_mv;  // tension au connecteur à 100 %
+  int16_t     rest_mv;      // tension au repos, potard au centre
   ParamState  state;
   const char* name;
 };
 
-// AUCUNE valeur par défaut : le firmware n'écrit sur une pin qu'après avoir
-// reçu son CC. Le CV s'ADDITIONNE au potard de façade (connector_analysis.md :
-// « CV externe + potentiomètre = contrôle hybride »), donc écrire au démarrage
-// décalerait le réglage du Kobol avant qu'on ait touché à quoi que ce soit.
-// Tant qu'un CC n'est pas venu, la pin reste en haute impédance et le Kobol
-// sonne exactement comme sans la carte.
+// AUCUNE valeur par défaut : le firmware n'écrit sur une sortie qu'après
+// avoir reçu son CC. Le CV s'ADDITIONNE au potard de façade
+// (connector_analysis.md : « CV externe + potentiomètre = contrôle
+// hybride »), donc écrire au démarrage décalerait le réglage du Kobol
+// avant qu'on ait touché à quoi que ce soit.
 //
-// rest_mv sert de repère de calibration, pas de valeur émise : c'est ce que la
-// pin porte d'elle-même, potard au centre.
+// v_min_mv / v_max_mv sont les plages relevées AU CONNECTEUR P1. Elles ne
+// valent que pour KOBOL_OUTPUT_JACK = 0. En sortie jack, seuls le pitch et
+// le cutoff sont câblés et utilisent la pleine échelle du DAC.
 //
-// Ordre = ordre d'attribution des canaux LEDC : le plus utile en premier,
-// puisqu'il n'y en a que 8 pour 12 sorties.
+// rest_mv est un repère de calibration, jamais émis.
 static const KobolParam PARAMS[] = {
-  // CC   pin  gpio  vmin   vmax   repos  condmin        condmax        état          nom
-  {  74,  15,   5,      0,   900,      0, COND_A_MIN_MV, COND_A_MAX_MV, PARAM_CHECK,  "VCF Cutoff"    },
-  {  71,  12,   6,   -670,   610,    600, COND_B_MIN_MV, COND_B_MAX_MV, PARAM_OK,     "VCF Resonance" },
-  {  73,   8,   7,   -660, -1150,   -520, COND_B_MIN_MV, COND_B_MAX_MV, PARAM_CHECK,  "VCF Attack"    },
-  {  75,   7,  15,  -1350,  -360,  -1270, COND_B_MIN_MV, COND_B_MAX_MV, PARAM_OK,     "VCF Decay"     },
-  { 102,   4,  16,      0,   920,    440, COND_A_MIN_MV, COND_A_MAX_MV, PARAM_OK,     "VCF Sustain"   },
-  { 103,  10,  17,     50,   600,    590, COND_A_MIN_MV, COND_A_MAX_MV, PARAM_OK,     "VCF ADS Ctrl"  },
-  { 105,   5,  18,   -660,  -280,   -500, COND_B_MIN_MV, COND_B_MAX_MV, PARAM_OK,     "VCA Attack"    },
-  { 106,   1,  GPIO_UNASSIGNED, -1410, -1170,  -90, COND_B_MIN_MV, COND_B_MAX_MV, PARAM_OK, "VCA Decay" },
-  { 107,  16,  GPIO_UNASSIGNED,   -30,   940,  460, COND_A_MIN_MV, COND_A_MAX_MV, PARAM_OK, "VCA Sustain" },
-  { 109,   9,  GPIO_UNASSIGNED,     0,   610,  600, COND_A_MIN_MV, COND_A_MAX_MV, PARAM_OK, "VCO2 Volume" },
-  { 108,  14,  GPIO_UNASSIGNED,   130,   600,    0, COND_A_MIN_MV, COND_A_MAX_MV, PARAM_CHECK, "VCO1 Volume" },
+  // CC   pin  dac            vmin   vmax   repos  état          nom
+  {  74,  15,  DAC_CH_CUTOFF,    0,   900,      0, PARAM_CHECK,  "VCF Cutoff"    },
 
-  // Bloqués — voir MIDI_MAP.md §6. Jamais émis, même si un GPIO est posé.
-  { 112,   3,  GPIO_UNASSIGNED, 0, 0, 0, COND_A_MIN_MV, COND_A_MAX_MV, PARAM_BLOCKED, "VCO1 Waveform" },
-  { 113,   6,  GPIO_UNASSIGNED, 0, 0, 0, COND_A_MIN_MV, COND_A_MAX_MV, PARAM_BLOCKED, "VCO2 Waveform" },
-  {  76, 255,  GPIO_UNASSIGNED, 0, 0, 0, COND_A_MIN_MV, COND_A_MAX_MV, PARAM_BLOCKED, "LFO Rate"      },
+  // Décrits, mais sans sortie tant qu'il n'y a qu'un MCP4822.
+  {  71,  12,  DAC_CH_NONE,   -670,   610,    600, PARAM_OK,     "VCF Resonance" },
+  {  73,   8,  DAC_CH_NONE,   -660, -1150,   -520, PARAM_CHECK,  "VCF Attack"    },
+  {  75,   7,  DAC_CH_NONE,  -1350,  -360,  -1270, PARAM_OK,     "VCF Decay"     },
+  { 102,   4,  DAC_CH_NONE,      0,   920,    440, PARAM_OK,     "VCF Sustain"   },
+  { 103,  10,  DAC_CH_NONE,     50,   600,    590, PARAM_OK,     "VCF ADS Ctrl"  },
+  { 105,   5,  DAC_CH_NONE,   -660,  -280,   -500, PARAM_OK,     "VCA Attack"    },
+  { 106,   1,  DAC_CH_NONE,  -1410, -1170,    -90, PARAM_OK,     "VCA Decay"     },
+  { 107,  16,  DAC_CH_NONE,    -30,   940,    460, PARAM_OK,     "VCA Sustain"   },
+  { 109,   9,  DAC_CH_NONE,      0,   610,    600, PARAM_OK,     "VCO2 Volume"   },
+  { 108,  14,  DAC_CH_NONE,    130,   600,      0, PARAM_CHECK,  "VCO1 Volume"   },
+
+  // Bloqués — voir MIDI_MAP.md §6. Jamais émis.
+  { 112,   3,  DAC_CH_NONE, 0, 0, 0, PARAM_BLOCKED, "VCO1 Waveform" },
+  { 113,   6,  DAC_CH_NONE, 0, 0, 0, PARAM_BLOCKED, "VCO2 Waveform" },
+  {  76, 255,  DAC_CH_NONE, 0, 0, 0, PARAM_BLOCKED, "LFO Rate"      },
 };
 
 static const uint8_t PARAM_COUNT = sizeof(PARAMS) / sizeof(PARAMS[0]);
 
-// Pitch : pin 11, traité à part car piloté par les notes et non par un CC.
-static const uint8_t GPIO_PITCH = 8;
-
 // ─────────────────────────────────────────────────────────────────────
-// Contrôleurs sans sortie matérielle
+// Contrôleurs sans sortie CV propre
 // ─────────────────────────────────────────────────────────────────────
 
-static const uint8_t CC_MODWHEEL       = 1;    // -> profondeur LFO logiciel
-static const uint8_t CC_PORTAMENTO_MS  = 5;    // temps de glide
-static const uint8_t CC_PORTAMENTO_SW  = 65;   // glide on/off
-static const uint8_t CC_VEL_TO_CUT_ON  = 114;  // vélocité -> cutoff, note on
-static const uint8_t CC_VEL_TO_CUT_OFF = 115;  // vélocité -> cutoff, note off
-static const uint8_t CC_VEL_TO_VCA     = 116;  // vélocité -> VCA sustain
-static const uint8_t CC_GATE_FORCE     = 118;  // gate forcé (CC100 en v1 : c'est
-                                               // le RPN LSB officiel, à ne pas
-                                               // réutiliser)
+static const uint8_t CC_MODWHEEL       = 1;
+static const uint8_t CC_PORTAMENTO_MS  = 5;
+static const uint8_t CC_PORTAMENTO_SW  = 65;
+static const uint8_t CC_LFO_RATE       = 76;   // PWM sur PIN_LFO_PWM
+static const uint8_t CC_VEL_TO_CUT_ON  = 114;
+static const uint8_t CC_VEL_TO_CUT_OFF = 115;
+static const uint8_t CC_VEL_TO_VCA     = 116;
+static const uint8_t CC_GATE_FORCE     = 118;  // CC 100 en v1 : c'est le RPN
+                                               // LSB officiel, à ne pas réutiliser
 
-static const uint16_t PORTAMENTO_MS_MAX = 1270;  // CC 5 × 10 ms
-
-// Pin 2 = rail -14,5 V. Aucune sortie ne doit y aboutir.
-// Pin 13 = VCO1 Frequency, réglage manuel par choix (vco_injection_test.md).
+// Pin 2 du P1 = rail -14,5 V. Aucune sortie ne doit y aboutir.
+// Pin 13 = VCO1 Frequency, réglage manuel par choix.

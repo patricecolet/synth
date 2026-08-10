@@ -1,67 +1,64 @@
 // KobolMidiCV — interface MIDI vers CV pour RSF Kobol Expander
 //
-// Cible  : ESP32-S3 VROOM N16R8
+// Cible  : Teensy 2.0 (ATmega32U4) + MCP4822
 // Carte  : ../MIDI_MAP.md
 // Réglage: ../CALIBRATION.md  <- à faire avant toute utilisation musicale
 //
-// Reprend v1-first-release/kobolDAC (Teensy 2.0 + MCP4822), en changeant
-// de MCU et en passant de 4 à 12 paramètres. La v1 reste la référence
-// fonctionnelle et n'est pas modifiée.
+// Reprend v1-first-release/kobolDAC, même câblage, en corrigeant l'échelle
+// du pitch et en ajoutant pile de notes, pitch bend et portamento
+// commutable. La v1 reste la référence et n'est pas modifiée.
 //
-// Dépendances (gestionnaire de bibliothèques Arduino) :
-//   - Adafruit TinyUSB Library      -> USB MIDI natif sur ESP32-S3
-//   - MIDI Library (FortySevenEffects)
-// Dans l'IDE : Outils > USB Mode > "USB-OTG (TinyUSB)"
+// Dans l'IDE : Outils > USB Type > "MIDI". Aucune bibliothèque externe :
+// usbMIDI et SPI viennent de Teensyduino.
+//
+// Tout est en entier. L'ATmega32U4 n'a pas de FPU : chaque opération
+// flottante coûte une dizaine de microsecondes, et le portamento tourne
+// à 1 kHz.
 
-#include <Adafruit_TinyUSB.h>
-#include <MIDI.h>
-
+#include <SPI.h>
 #include "config.h"
 #include "output.h"
-
-Adafruit_USBD_MIDI usb_midi;
-MIDI_CREATE_INSTANCE(Adafruit_USBD_MIDI, usb_midi, MIDI);
 
 // ─────────────────────────────────────────────────────────────────────
 // État
 // ─────────────────────────────────────────────────────────────────────
 
-static uint8_t cc_value[PARAM_COUNT];   // dernier CC reçu par paramètre
-static bool    cc_seen[PARAM_COUNT];    // ce CC est-il déjà arrivé ?
+static uint8_t cc_value[PARAM_COUNT];
 
 // Pile de notes : priorité à la dernière jouée, retour à la précédente au
 // relâchement. La v1 ne gardait qu'une note et perdait le legato.
-static const uint8_t NOTE_STACK_MAX = 8;
+static const uint8_t NOTE_STACK_MAX = 6;
 static uint8_t note_stack[NOTE_STACK_MAX];
 static uint8_t note_count = 0;
 
-static bool    gate_from_note  = false;
-static bool    gate_forced     = false;
+static bool gate_from_note = false;
+static bool gate_forced    = false;
 
-static float   pitch_current_mv = CAL_NEUTRAL_MV;  // suit le portamento
-static float   pitch_target_mv  = CAL_NEUTRAL_MV;
-// Portamento à zéro au démarrage : les notes sautent, pas de glide. Il ne
-// s'active que si un CC 5 non nul arrive.
-static uint16_t portamento_ms   = 0;
-static bool    portamento_on    = true;
-static uint32_t last_update_us  = 0;
+// Pitch en millivolts × 16 : la fraction sert au portamento, qui doit
+// avancer par pas plus fins qu'un millivolt sans recourir au flottant.
+static const uint8_t PITCH_FRAC = 4;              // décalage, 2^4 = 16
+static int32_t pitch_current_q = 0;
+static int32_t pitch_target_q  = 0;
 
-static float   bend_semitones   = 0.0f;
-static uint8_t last_velocity    = 100;
+// Portamento à zéro au démarrage : les notes sautent. Il ne s'active que
+// si un CC 5 non nul arrive.
+static uint16_t portamento_ms = 0;
+static bool     portamento_on = true;
+static uint32_t last_update_ms = 0;
 
-// Profondeurs de modulation, 0-127
+static int16_t bend_cents    = 0;
+static uint8_t last_velocity = 100;
+
 static uint8_t vel_to_cut_on  = 0;
 static uint8_t vel_to_cut_off = 0;
 static uint8_t vel_to_vca     = 0;
 
-// ─────────────────────────────────────────────────────────────────────
-// Utilitaires
-// ─────────────────────────────────────────────────────────────────────
-
 // Déclaré ici : onNoteOn renvoie vers onNoteOff pour le cas vélocité 0.
-// L'IDE Arduino génère les prototypes automatiquement, mais pas pour les
-// fonctions `static` — sans cette ligne, la compilation échoue.
 static void onNoteOff(byte channel, byte note, byte velocity);
+
+// ─────────────────────────────────────────────────────────────────────
+// Conversions
+// ─────────────────────────────────────────────────────────────────────
 
 static int8_t paramIndexForCC(uint8_t cc) {
   for (uint8_t i = 0; i < PARAM_COUNT; i++) {
@@ -70,36 +67,50 @@ static int8_t paramIndexForCC(uint8_t cc) {
   return -1;
 }
 
-// CC 0-127 -> tension au connecteur, interpolée sur la plage mesurée.
-// v_min_mv peut être supérieur à v_max_mv : plusieurs pins du Kobol sont
-// inversées (VCF Attack va de -660 à -1150 mV).
+// CC 0-127 -> tension. v_min_mv peut dépasser v_max_mv : plusieurs pins du
+// Kobol sont inversées (VCF Attack va de -660 à -1150 mV).
 static int32_t ccToMv(const KobolParam& p, int32_t cc) {
   if (cc < 0)   cc = 0;
   if (cc > 127) cc = 127;
+
+#if KOBOL_OUTPUT_JACK
+  // En sortie jack, pas de plage mesurée : on prend la pleine échelle du DAC.
+  (void)p;
+  return (cc * DAC_FULL_MV) / 127;
+#else
   return (int32_t)p.v_min_mv +
          (((int32_t)p.v_max_mv - (int32_t)p.v_min_mv) * cc) / 127;
+#endif
 }
 
-// Applique un paramètre en tenant compte des modulations qui le visent.
+// Note MIDI -> millivolts. Réponse exponentielle du VCO : une tension
+// proportionnelle au numéro de note donne des demi-tons réguliers.
+// Le pitch bend est appliqué en centièmes de demi-ton.
+static int32_t noteToMv(uint8_t note, int16_t cents) {
+  const int32_t semitones_c = ((int32_t)note - (int32_t)CAL_BASE_NOTE) * 100
+                            + (int32_t)cents;
+  return (semitones_c * (int32_t)cal_mv_per_octave) / 1200;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Application des paramètres
+// ─────────────────────────────────────────────────────────────────────
+
 static void applyParam(uint8_t i) {
   if (!outputIsLive(i)) return;
-  // Tant que le CC n'est pas venu, on ne touche pas à la pin : le potard de
-  // façade garde la main et le Kobol sonne comme sans la carte.
-  if (!cc_seen[i]) return;
   const KobolParam& p = PARAMS[i];
 
   int32_t cc = cc_value[i];
 
-  // Vélocité -> cutoff : profondeur différente à l'attaque et au relâché,
-  // comme en v1 (CC 14/15, renumérotés 114/115).
+  // Vélocité -> cutoff, profondeur différente à l'attaque et au relâché
+  // (CC 14/15 en v1, renumérotés 114/115).
   if (p.cc == 74) {
     const uint8_t depth = gate_from_note ? vel_to_cut_on : vel_to_cut_off;
-    cc += ((int32_t)last_velocity * depth) / 127;
+    if (depth) cc += ((int32_t)last_velocity * depth) / 127;
   }
-  // Vélocité -> VCA sustain
   if (p.cc == 107 && vel_to_vca) {
-    cc = (cc * (127 - vel_to_vca)) / 127 +
-         ((int32_t)last_velocity * vel_to_vca) / 127;
+    cc = (cc * (127 - vel_to_vca)) / 127
+       + ((int32_t)last_velocity * vel_to_vca) / 127;
   }
 
   outputWriteMv(i, ccToMv(p, cc));
@@ -109,21 +120,14 @@ static void applyAllParams() {
   for (uint8_t i = 0; i < PARAM_COUNT; i++) applyParam(i);
 }
 
-// Note MIDI -> tension pin 11. Réponse exponentielle du VCO : une tension
-// proportionnelle au numéro de note donne des demi-tons réguliers.
-static float noteToMv(float note) {
-  return (float)CAL_NEUTRAL_MV +
-         (note - (float)CAL_NEUTRAL_NOTE) * (cal_mv_per_octave / 12.0f);
-}
-
 static void updatePitchTarget() {
   if (note_count == 0) return;
   const uint8_t note = note_stack[note_count - 1];
-  pitch_target_mv = noteToMv((float)note + bend_semitones);
+  pitch_target_q = (int32_t)noteToMv(note, bend_cents) << PITCH_FRAC;
 }
 
 static void setGate(bool on) {
-  digitalWrite(GPIO_GATE, (on || gate_forced) ? HIGH : LOW);
+  outputWriteGate(on || gate_forced);
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -132,12 +136,11 @@ static void setGate(bool on) {
 
 static void pushNote(uint8_t note) {
   for (uint8_t i = 0; i < note_count; i++) {
-    if (note_stack[i] == note) return;         // déjà présente
+    if (note_stack[i] == note) return;
   }
   if (note_count < NOTE_STACK_MAX) {
     note_stack[note_count++] = note;
   } else {
-    // Pile pleine : on écarte la plus ancienne.
     for (uint8_t i = 1; i < NOTE_STACK_MAX; i++) note_stack[i - 1] = note_stack[i];
     note_stack[NOTE_STACK_MAX - 1] = note;
   }
@@ -168,8 +171,10 @@ static void onNoteOn(byte channel, byte note, byte velocity) {
   updatePitchTarget();
 
   // Première note d'une phrase : pas de glide depuis le néant.
-  if (was_silent && !portamento_on) pitch_current_mv = pitch_target_mv;
-  if (was_silent && portamento_ms == 0) pitch_current_mv = pitch_target_mv;
+  if (was_silent || !portamento_on || portamento_ms == 0) {
+    pitch_current_q = pitch_target_q;
+    outputWritePitchMv(pitch_current_q >> PITCH_FRAC);
+  }
 
   gate_from_note = true;
   setGate(true);
@@ -186,7 +191,7 @@ static void onNoteOff(byte channel, byte note, byte velocity) {
     gate_from_note = false;
     setGate(false);
   } else {
-    updatePitchTarget();   // legato : retour à la note encore tenue
+    updatePitchTarget();       // legato : retour à la note encore tenue
   }
   applyAllParams();
 }
@@ -197,43 +202,33 @@ static void onControlChange(byte channel, byte control, byte value) {
   const int8_t idx = paramIndexForCC(control);
   if (idx >= 0) {
     cc_value[idx] = value;
-    cc_seen[idx]  = true;      // à partir d'ici la carte prend la main
+    outputMarkSeen((uint8_t)idx);   // à partir d'ici la carte prend la main
     applyParam((uint8_t)idx);
     return;
   }
 
   switch (control) {
-    case CC_PORTAMENTO_MS:
-      portamento_ms = (uint16_t)value * 10;      // 0 -> 1270 ms
-      break;
-    case CC_PORTAMENTO_SW:
-      portamento_on = (value >= 64);
-      break;
+    case CC_PORTAMENTO_MS:  portamento_ms = (uint16_t)value * 10; break;
+    case CC_PORTAMENTO_SW:  portamento_on = (value >= 64);        break;
+    case CC_LFO_RATE:       outputWriteLfoRate(value);            break;
+    case CC_VEL_TO_CUT_ON:  vel_to_cut_on  = value;               break;
+    case CC_VEL_TO_CUT_OFF: vel_to_cut_off = value;               break;
+    case CC_VEL_TO_VCA:     vel_to_vca = value; applyAllParams(); break;
     case CC_GATE_FORCE:
       gate_forced = (value >= 64);
       setGate(gate_from_note);
       break;
-    case CC_VEL_TO_CUT_ON:
-      vel_to_cut_on = value;
-      break;
-    case CC_VEL_TO_CUT_OFF:
-      vel_to_cut_off = value;
-      break;
-    case CC_VEL_TO_VCA:
-      vel_to_vca = value;
-      applyAllParams();
-      break;
     case CC_MODWHEEL:
       // Réservé : profondeur du LFO logiciel, pas encore implémenté.
       break;
-    default:
-      break;
+    default: break;
   }
 }
 
 static void onPitchBend(byte channel, int bend) {
   (void)channel;
-  bend_semitones = ((float)bend / 8192.0f) * PITCH_BEND_SEMITONES;
+  // bend va de -8192 à +8191
+  bend_cents = (int16_t)(((int32_t)bend * PITCH_BEND_CENTS_MAX) / 8192);
   updatePitchTarget();
 }
 
@@ -242,26 +237,32 @@ static void onPitchBend(byte channel, int bend) {
 // ─────────────────────────────────────────────────────────────────────
 
 static void updatePortamento() {
-  const uint32_t now = micros();
-  const uint32_t dt  = now - last_update_us;
-  if (dt < 500) return;                 // pas plus de 2 kHz
-  last_update_us = now;
+  const uint32_t now = millis();
+  const uint32_t dt  = now - last_update_ms;
+  if (dt == 0) return;
+  last_update_ms = now;
 
   if (!portamento_on || portamento_ms == 0) {
-    pitch_current_mv = pitch_target_mv;
-  } else {
-    // Progression linéaire : la plage complète serait franchie en
-    // portamento_ms. Une note voisine glisse donc plus vite qu'un grand
-    // intervalle, ce qui est le comportement attendu d'un glide analogique.
-    const float span     = (float)(PITCH_MAX_MV - PITCH_MIN_MV);
-    const float step     = span * ((float)dt / 1000.0f) / (float)portamento_ms;
-    const float distance = pitch_target_mv - pitch_current_mv;
-
-    if (fabsf(distance) <= step) pitch_current_mv = pitch_target_mv;
-    else                         pitch_current_mv += (distance > 0 ? step : -step);
+    if (pitch_current_q != pitch_target_q) {
+      pitch_current_q = pitch_target_q;
+      outputWritePitchMv(pitch_current_q >> PITCH_FRAC);
+    }
+    return;
   }
+  if (pitch_current_q == pitch_target_q) return;
 
-  outputWritePitchMv((int32_t)lroundf(pitch_current_mv));
+  // Progression linéaire : la pleine échelle serait franchie en
+  // portamento_ms. Un petit intervalle glisse donc plus vite qu'un grand,
+  // ce qui est le comportement d'un glide analogique.
+  const int32_t span = (int32_t)PITCH_MAX_MV << PITCH_FRAC;
+  int32_t step = (int32_t)((span * (int32_t)dt) / (int32_t)portamento_ms);
+  if (step < 1) step = 1;
+
+  const int32_t distance = pitch_target_q - pitch_current_q;
+  if (distance > -step && distance < step) pitch_current_q = pitch_target_q;
+  else pitch_current_q += (distance > 0) ? step : -step;
+
+  outputWritePitchMv(pitch_current_q >> PITCH_FRAC);
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -269,34 +270,30 @@ static void updatePortamento() {
 void setup() {
   Serial.begin(115200);
 
-  MIDI.setHandleNoteOn(onNoteOn);
-  MIDI.setHandleNoteOff(onNoteOff);
-  MIDI.setHandleControlChange(onControlChange);
-  MIDI.setHandlePitchBend(onPitchBend);
+  usbMIDI.setHandleNoteOn(onNoteOn);
+  usbMIDI.setHandleNoteOff(onNoteOff);
+  usbMIDI.setHandleControlChange(onControlChange);
+  usbMIDI.setHandlePitchChange(onPitchBend);
 
-  usb_midi.setStringDescriptor("Kobol MIDI/CV");
-  MIDI.begin(MIDI_CHANNEL_OMNI);
-
-  // TinyUSB doit être démarré avant tout envoi ; sur ESP32-S3 le port
-  // série USB met un instant à s'ouvrir, d'où l'attente bornée.
-  const uint32_t t0 = millis();
-  while (!TinyUSBDevice.mounted() && (millis() - t0) < 2000) delay(10);
-
-  Serial.println(F("\n=== Kobol MIDI/CV ==="));
   const uint8_t live = outputBegin();
-  Serial.printf("Sorties actives : %u\n", live);
-  Serial.printf("Calibration pitch : %.1f mV/octave (A VERIFIER)\n", cal_mv_per_octave);
 
-  // Rien n'est écrit sur les pins : le Kobol reste sous le contrôle de ses
-  // potards jusqu'au premier CC reçu. Seul le pitch est posé, à son point
-  // neutre de -22 mV, qui ne déplace pas le VCO2 (cf. vco_injection_test.md).
-  for (uint8_t i = 0; i < PARAM_COUNT; i++) { cc_value[i] = 0; cc_seen[i] = false; }
-  Serial.println(F("Pins au repos jusqu'au premier CC — potards de facade actifs"));
+  Serial.println(F("\n=== Kobol MIDI/CV (Teensy 2.0) ==="));
+#if KOBOL_OUTPUT_JACK
+  Serial.println(F("Sortie : jacks de facade, pleine echelle DAC 0-4096 mV"));
+#else
+  Serial.println(F("Sortie : connecteur P1 — ETAGE D'ADAPTATION REQUIS"));
+#endif
+  Serial.print(F("Parametres avec sortie : ")); Serial.println(live);
+  Serial.print(F("Calibration pitch : ")); Serial.print(cal_mv_per_octave);
+  Serial.println(F(" mV/octave (A VERIFIER, cf. CALIBRATION.md)"));
+  outputReport();
+  Serial.println(F("Sorties au repos jusqu'au premier CC — potards de facade actifs"));
 
-  last_update_us = micros();
+  for (uint8_t i = 0; i < PARAM_COUNT; i++) cc_value[i] = 0;
+  last_update_ms = millis();
 }
 
 void loop() {
-  MIDI.read();
+  usbMIDI.read();
   updatePortamento();
 }

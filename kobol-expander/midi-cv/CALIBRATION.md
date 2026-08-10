@@ -1,114 +1,115 @@
 # Calibration
 
-À faire **avant toute utilisation musicale**. Le firmware sort d'usine avec une
-valeur de pitch qui est une hypothèse, pas une mesure.
+À faire **avant toute utilisation musicale**. Le firmware sort avec une valeur
+de pitch théorique, jamais vérifiée sur ta machine.
 
-## Pourquoi c'est nécessaire
+## Le bug d'échelle de la v1
 
-Le test d'injection ([`../docs/measurements/vco_injection_test.md`](../docs/measurements/vco_injection_test.md))
-a établi par écoute, à la pile variable :
+`v1-first-release/kobolDAC.ino` pose :
 
-| | |
-|---|---|
-| Point neutre (VCO2 immobile) | **−22 mV** |
-| Note la plus grave | **−1532 mV** |
-| Note la plus aiguë | **+1532 mV** |
-| Réponse | **exponentielle** |
-| Décrochage | vers 10 Hz |
+```c
+noteVoltage = 4000 * (float) note / 120.0;
+```
 
-Ce qui n'a **pas** été mesuré : combien de millivolts font une octave. Or c'est
-la seule constante qui détermine si l'instrument joue juste.
+Soit 4000 unités DAC pour 120 demi-tons, c'est-à-dire **33,3 unités par
+demi-ton**. Le MCP4822 en gain ×2 sort 1 mV par unité, donc 33,3 mV par
+demi-ton, soit **400 mV par octave**.
 
-Le document en déduit 155,4 mV/octave, en posant « 10 octaves sur 1554 mV ».
-Mais 1554 mV n'est que la moitié de la plage relevée : de −1532 à +1532 mV, il
-y a **3108 mV**. Si la gamme complète tient dans cette plage, on est à
-**310,8 mV/octave**.
+Or une entrée 1 V/octave demande **1000 mV par octave**.
 
-Les deux valeurs diffèrent d'un facteur 2. Avec la mauvaise, **tous les
-intervalles sont doublés ou divisés par deux** — une octave jouée sonne comme
-une quinte, ou comme deux octaves. Le firmware part sur 310,8 mV/oct
-(`cal_mv_per_octave` dans `config.h`), qui est l'hypothèse la plus cohérente
-avec la plage mesurée, mais ça reste à confirmer.
+La v1 jouait donc ses intervalles à 40 % de leur écart : **une octave sonnait
+comme une quarte** (400 mV ÷ 1000 = 0,4 octave = 4,8 demi-tons). C'est
+probablement passé inaperçu parce qu'on n'entend pas un décalage d'échelle en
+jouant une note à la fois — seulement en jouant deux notes distantes.
+
+Le nouveau firmware part sur `cal_mv_per_octave = 1000`, valeur théorique. Reste
+à vérifier qu'elle correspond à ton exemplaire.
 
 ## Procédure
 
 Il faut un accordeur (ou un accordeur logiciel dans le DAW) et un clavier MIDI.
 
-### 1. Vérifier le point neutre
+### 1. Vérifier le repos
 
-Sans rien envoyer, le firmware place la pin 11 à −22 mV. Le potard Freq2 du
-Kobol doit être à zéro. Joue Do3 (note 60) : le VCO2 doit sonner exactement
-comme quand rien n'est branché.
-
-Si ce n'est pas le cas, ajuster `CAL_NEUTRAL_MV` dans `config.h` jusqu'à ce que
-la note 60 ne déplace pas le VCO2.
+Au démarrage, le firmware met le canal A à 0 mV et n'écrit sur aucun autre
+paramètre tant qu'un CC n'est pas arrivé. Le Kobol doit sonner **exactement**
+comme carte débranchée. Si un réglage saute au branchement, c'est que le CV
+n'est pas au repos — vérifier le câblage avant d'aller plus loin.
 
 ### 2. Mesurer l'octave réelle
 
-Joue **Do3 (note 60)**, relève la fréquence à l'accordeur. Joue **Do4 (note
-72)**, relève à nouveau.
+Joue **Do1 (note 24)**, relève la fréquence. Joue **Do2 (note 36)**, relève.
 
-- Si la seconde est **le double** de la première → `cal_mv_per_octave` est bon.
-- Si elle est **quadruple** → la valeur est deux fois trop grande. Diviser par 2.
-- Si elle est **1,41× environ** (une quinte) → deux fois trop petite. Multiplier par 2.
+- Rapport **2,0** → `cal_mv_per_octave` est juste.
+- Rapport **plus petit** → la constante est trop petite.
+- Rapport **plus grand** → trop grande.
 
-Puis affiner : le rapport mesuré donne directement le facteur correctif.
+Le facteur correctif se lit directement :
 
 ```
-cal_mv_per_octave_correct = cal_mv_per_octave × log2(f_haut / f_bas)
+cal_mv_per_octave_correct = cal_mv_per_octave ÷ log2(f_haut ÷ f_bas)
 ```
 
-Exemple : si Do3 → 130 Hz et Do4 → 190 Hz, le rapport est 1,46, soit
-log2(1,46) = 0,55 octave au lieu de 1. Il faut donc diviser la constante par
-0,55, c'est-à-dire la porter de 310,8 à 565 mV/octave.
+Exemple : Do1 → 65 Hz, Do2 → 86 Hz. Le rapport vaut 1,32, soit log2(1,32) =
+0,40 octave au lieu de 1. Il faut donc diviser 1000 par 0,40 → **2500 mV/octave**.
+(C'est exactement le symptôme qu'aurait donné l'échelle de la v1.)
+
+Refaire la mesure après correction : deux itérations suffisent en général.
 
 ### 3. Vérifier l'étendue
 
-Une fois l'octave juste, chercher jusqu'où ça tient. Les butées
-`PITCH_MIN_MV` / `PITCH_MAX_MV` bornent à ±1532 mV, donc l'étendue jouable
-vaut `3064 / cal_mv_per_octave` octaves autour de Do3.
+Le DAC sort 0 à 4096 mV. L'étendue jouable vaut donc
+`4096 ÷ cal_mv_per_octave` octaves à partir de `CAL_BASE_NOTE`.
 
-À 310,8 mV/oct cela fait environ 10 octaves — plus que la plage MIDI. À
-565 mV/oct, 5,4 octaves, soit de Sol0 à Ré6 : il faudra probablement décaler
-`CAL_NEUTRAL_NOTE` pour centrer la plage sur ce que tu joues.
+| `cal_mv_per_octave` | étendue | depuis Do1 (note 24) |
+|---|---|---|
+| 1000 | 4,1 octaves | jusqu'à Do5 |
+| 2500 | 1,6 octave | jusqu'à Sol2 |
 
-Vérifier aussi le bas : le test d'injection signale un décrochage vers 10 Hz.
-Les notes sous cette limite ne tiendront pas l'accord.
+Si l'étendue est trop courte, deux leviers : monter `CAL_BASE_NOTE` pour
+recentrer la plage sur ce que tu joues, ou ajouter un étage d'amplification
+derrière le DAC.
 
-### 4. Résolution obtenue
+### 4. Résolution
 
-Le PWM est en 14 bits sur la plage d'adaptation (3200 mV pour le gabarit
-bipolaire), soit **0,195 mV par pas**.
+Le MCP4822 est en 12 bits sur 4096 mV, soit **1 mV par pas**.
 
-| `cal_mv_per_octave` | mV par demi-ton | pas PWM par demi-ton | erreur max |
+| `cal_mv_per_octave` | mV par demi-ton | pas DAC par demi-ton | erreur max |
 |---|---|---|---|
-| 155,4 | 12,9 | 66 | 0,75 cent |
-| 310,8 | 25,9 | 133 | 0,38 cent |
-| 565 | 47,1 | 241 | 0,21 cent |
+| 1000 | 83,3 | 83 | 6 cents |
+| 2500 | 208,3 | 208 | 2,4 cents |
 
-Dans tous les cas la résolution est largement suffisante — l'erreur d'accord
-viendra de la stabilité analogique, pas du PWM.
-
-> Le calcul de résolution du document d'injection annonce « 2,8 pas PWM par
-> cent ». Il confond deux échelles en route : à 155,4 mV/oct, un cent vaut
-> 0,1295 mV, soit **0,66 pas PWM** et non 2,8. La conclusion tenait quand même
-> — la résolution suffit — mais avec quatre fois moins de marge qu'annoncé.
+6 cents est audible sur un accord tenu, à la limite du perceptible sur une
+mélodie. C'est la limite du 12 bits : passer au 16 bits (MCP4922 ou DAC 16
+bits) diviserait l'erreur par 16 si un jour ça gêne.
 
 ## Calibration des autres paramètres
 
-Les plages de `PARAMS[]` dans `config.h` viennent des relevés au multimètre de
-[`../docs/measurements/p1_connector_measurements.md`](../docs/measurements/p1_connector_measurements.md).
-Elles sont bornées par l'étage d'adaptation, donc une erreur ne peut pas
-endommager le Kobol — au pire le paramètre ne couvre pas toute sa course.
+Avec un seul MCP4822, **seuls le pitch et le cutoff ont une sortie**. Les autres
+plages de `PARAMS[]` viennent des relevés au multimètre de
+[`../docs/measurements/p1_connector_measurements.md`](../docs/measurements/p1_connector_measurements.md)
+et ne servent que le jour où on branchera le connecteur P1.
 
-Deux marquées `PARAM_CHECK` méritent une vérification à l'oreille :
+Deux marquées `check` méritent une vérification à l'oreille :
 
-- **VCF Cutoff** (pin 15) et **VCO1 Volume** (pin 14) — relevées comme
-  variables au multimètre, mais listées à 0 V dans
+- **VCF Cutoff** (pin 15) et **VCO1 Volume** (pin 14) — relevées comme variables
+  au multimètre, mais listées à 0 V dans
   [`../docs/measurements/analysis_issues.md`](../docs/measurements/analysis_issues.md).
   Les deux documents se contredisent.
 - **VCF Attack** (pin 8) — mesures non monotones : −660 mV au minimum,
   −1260 mV au milieu, −1150 mV au maximum. Une médiane hors de l'intervalle
-  des extrêmes ne peut pas venir d'un diviseur résistif. Le firmware
-  interpole de −660 à −1150 mV en ignorant le point milieu, ce qui est
-  probablement faux. À reprendre au multimètre en relevant 5 points.
+  des extrêmes ne peut pas venir d'un diviseur résistif. À reprendre en
+  relevant 5 points.
+
+## Jacks ou connecteur P1 ?
+
+`config.h` porte un commutateur `KOBOL_OUTPUT_JACK`, à **1** par défaut, car
+c'est ce que fait le câblage repris de la v1.
+
+| | Échelle | Conditionnement |
+|---|---|---|
+| **Jacks de façade** | pleine échelle DAC, 0-4096 mV | aucun, le DAC attaque directement |
+| **Connecteur P1** | ±1,5 V utiles seulement | **étage d'adaptation obligatoire** |
+
+Passer le commutateur à 0 sans avoir monté l'étage d'adaptation revient à
+injecter 4 V sur une entrée qui en attend 1,5.

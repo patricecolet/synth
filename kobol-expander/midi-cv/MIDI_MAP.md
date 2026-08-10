@@ -18,8 +18,8 @@ Canal MIDI : **1** par défaut.
 
 | Fonction | Message | Sortie matérielle |
 |---|---|---|
-| Pitch CV | Note On/Off | PWM → pin 11, exponentiel |
-| Gate | Note On/Off | `GPIO_GATE`, jack façade |
+| Pitch CV | Note On/Off | MCP4822 canal A |
+| Gate | Note On/Off | Teensy pin 6, jack façade |
 | Gate forcé | **CC 118** | idem |
 | Portamento (glide) | **CC 5** — Portamento Time | interpolé logiciel |
 | Portamento on/off | **CC 65** | idem |
@@ -75,7 +75,7 @@ La **pin 13** (VCO1 Freq) est laissée au potard de façade, choix acté dans
 
 | Paramètre | CC | Nom standard | Pin |
 |---|---|---|---|
-| LFO Rate | **76** | Vibrato Rate | ⚠️ **pas la pin 2** — voir §6 |
+| LFO Rate | **76** | Vibrato Rate | PWM Teensy pin 10 ; ⚠️ pin P1 inconnue, **pas la pin 2** |
 | LFO Depth | **77** | Vibrato Depth | — (logiciel) |
 | Mod wheel → LFO depth | **1** | Modulation | — (logiciel) |
 
@@ -157,7 +157,7 @@ certaines pins sont unipolaires positives (4, 9, 10, 14, 15, 16), d'autres
 franchement négatives (1, 5, 7, 8), une bipolaire (12, résonance), et le pitch
 va de −1,5 à +1,5 V.
 
-Le PWM de l'ESP32 sort 0 → 3,3 V. Il faut donc par pin un décalage et une
+Le MCP4822 sort 0 → 4,096 V. Il faut donc par pin un décalage et une
 atténuation. Le firmware n'utilise que deux gabarits de conditionnement,
 unipolaire et bipolaire (`COND_A_*` / `COND_B_*` dans `config.h`), et rattrape
 le reste en logiciel — chaque paramètre connaît sa propre plage utile. Cela
@@ -169,35 +169,13 @@ Reste que l'hypothèse « ±1,5 V uniforme » du README de v2-simple ne tient pa
 telle quelle : les plages relevées vont de 0,24 V (VCA Decay) à 1,28 V
 (Résonance), un rapport de 5.
 
-### L'ESP32-S3 n'a que 8 canaux PWM
+### Le matériel actuel n'offre que deux sorties
 
-Le LEDC de l'ESP32-S3 offre **8 canaux** (4 timers, pas de mode grande vitesse).
-L'ESP32 d'origine en avait 16, ce qui explique le « 16× PWM natifs » annoncé
-dans `v3-advanced/README.md` — vrai pour l'ESP32 classique, faux pour le S3.
+Le câblage repris de la v1 est un **Teensy 2.0 + un seul MCP4822**, donc deux
+canaux CV : le pitch et le cutoff. C'est assez pour CC 74, pas pour les douze
+autres paramètres, qui restent décrits dans la table sans sortie.
 
-Il faut 12 sorties. Le firmware sert donc le pitch en premier, puis les
-paramètres dans l'ordre de la table, et signale au démarrage lesquels sont
-restés muets. Pour les 4 manquants il faudra soit un DAC externe en SPI
-(MCP4822 en chaîne), soit un PCA9685, soit le MCPWM du S3 qui apporte 6 canaux
-de plus.
-
----
-
-## Récapitulatif
-
-| Zone CC | Usage |
-|---|---|
-| 1, 5, 65 | Modulation, portamento — standards |
-| 71-77 | Sound Controllers — VCF et LFO |
-| 102-113 | Paramètres Kobol sans équivalent standard |
-| 114-117 | Profondeurs de modulation logicielle |
-| 118 | Gate forcé |
-
-**23 contrôleurs**, plus le pitch piloté par les notes.
-
-| | Nombre |
-|---|---|
-| Sorties CV implémentées dans le firmware | **12** (11 CC + le pitch) |
-| Bloqués faute de mesure | **3** — waveforms VCO1/VCO2, LFO Rate |
-| Laissés au potard, par choix | **1** — VCO1 Freq |
-| Interdit | **1** — pin 2, rail −14,5 V |
+Pour les servir : un second MCP4822 sur un autre CS (4 canaux), ou l'ESP32-S3
+de `v2-simple`. Attention, ce dernier n'a que **8 canaux LEDC** et non 16 —
+`v3-advanced/README.md` annonce « 16× PWM natifs », ce qui vaut pour l'ESP32
+d'origine mais pas pour le S3 (4 timers, pas de mode grande vitesse).

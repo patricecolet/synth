@@ -1,81 +1,92 @@
 # kobol-expander / midi-cv
 
-Interface MIDI → CV pour RSF Kobol Expander. Dossier de travail actif.
+Interface MIDI → CV pour RSF Kobol Expander, plus l'outillage autour :
+carte MIDI partagée, futur VST, futur séquenceur.
 
-Reprend [`../v1-first-release/`](../v1-first-release/), qui reste intouché comme
-référence fonctionnelle (Teensy 2.0, 4 paramètres), en changeant de MCU et en
-passant à 12 paramètres.
+## Cible
+
+**Teensy 2.0 + MCP4822**, câblage repris de
+[`../v1-first-release/`](../v1-first-release/), qui est monté et fonctionne. La
+v1 reste intouchée comme référence.
+
+L'ESP32-S3 de [`../v2-simple/`](../v2-simple/) reste la cible d'évolution — il
+apporterait 12 sorties au lieu de 2 — mais ce n'est pas ce qui est câblé
+aujourd'hui.
+
+```
+DAW / VST ─ USB MIDI ─ Teensy 2.0 ─ SPI ─ MCP4822 ─┬─ canal A ─ pitch
+                            │                      └─ canal B ─ cutoff (CC 74)
+                            ├─ pin 6  ─ gate
+                            └─ pin 10 ─ PWM LFO rate
+```
 
 ## État
 
 | | |
 |---|---|
-| **Carte MIDI** | [`MIDI_MAP.md`](MIDI_MAP.md) — 23 CC + le pitch |
+| **Carte MIDI, lisible** | [`midi-map.json`](midi-map.json) — source unique firmware + VST |
+| **Carte MIDI, lue** | [`MIDI_MAP.md`](MIDI_MAP.md) — 23 CC + le pitch |
+| **Cohérence** | `python3 tools/check_map.py` |
 | **Calibration** | [`CALIBRATION.md`](CALIBRATION.md) — **à faire avant de jouer** |
 | **Firmware** | `KobolMidiCV/` — écrit, jamais compilé ni testé sur cible |
-| **Matériel** | ESP32-S3 + LM324, carte non réalisée |
+| **VST** | pas commencé |
+| **Séquenceur** | pas commencé |
 
-## Matériel visé
+## Ce que le câblage actuel permet
 
-ESP32-S3 VROOM N16R8, d'après [`../v2-simple/README.md`](../v2-simple/README.md)
-(avril 2026), qui est la décision la plus récente. Les documents de `../docs/`
-datent de septembre 2025 et parlent encore de Teensy : ils sont dépassés sur ce
-point.
+Deux sorties CV seulement, puisque le MCP4822 a deux canaux :
 
-```
-ESP32-S3 ─ PWM 14 bits ─ RC 1kΩ/330nF ─ LM324 (gain + offset) ─ P1 du Kobol
-         └ GPIO gate ────────────────────────────────────────── jack façade
-```
+- **Pitch** sur le canal A, piloté par les notes, le pitch bend et le portamento
+- **Cutoff du filtre** sur le canal B, piloté par **CC 74**
 
-## Structure du firmware
+Plus le gate et le PWM du LFO rate. Les douze autres paramètres sont décrits
+dans la table mais sans sortie : il faudra un second MCP4822 sur un autre CS,
+ou passer à l'ESP32.
+
+## Structure
 
 | Fichier | Rôle |
 |---|---|
 | `KobolMidiCV.ino` | MIDI, pile de notes, portamento, modulations |
 | `config.h` | brochage, calibration, **table des paramètres** |
-| `output.h` / `.cpp` | couche de sortie CV, isole le choix PWM/DAC |
+| `output.h` / `.cpp` | couche de sortie, isole le MCP4822 |
+| `midi-map.json` | la même carte, pour le VST |
+| `tools/check_map.py` | vérifie que les deux ne divergent pas |
 
-Tout ce qui se règle est dans `config.h`. La table `PARAMS[]` porte, pour chaque
-paramètre : son CC, sa pin P1, son GPIO, sa plage en millivolts et son état
-(`PARAM_OK`, `PARAM_CHECK`, `PARAM_BLOCKED`). Ajouter un paramètre = ajouter une
-ligne.
+Tout ce qui se règle est dans `config.h`. Ajouter un paramètre = une ligne dans
+la table **et** une entrée dans le JSON ; `check_map.py` refuse si l'un des deux
+manque.
 
-`output.cpp` est le seul fichier à toucher si le PWM laisse place à un DAC
-externe.
+Le firmware est en **arithmétique entière** : l'ATmega32U4 n'a pas de FPU et
+émule le flottant en logiciel, à une dizaine de microsecondes l'opération.
 
 ## Ce qui reste à faire
 
-### Avant de brancher quoi que ce soit
-
-1. **Trancher la numérotation du connecteur.** `Plug.txt` et
-   `connector_analysis.md` ne décrivent pas le même ordre de pins — le premier
-   parle de P1 *et* P7, le second nomme « P1 » ce qui correspond ligne pour
-   ligne au P7 du premier. Une erreur ici décale tout le connecteur et envoie un
-   CV sur le rail d'alimentation. Détail en §6 de [`MIDI_MAP.md`](MIDI_MAP.md).
-2. **Ne jamais câbler la pin 2** : c'est le rail −14,5 V, mesuré.
-
 ### Avant de jouer
 
-3. **Calibrer le pitch.** Le nombre de millivolts par octave n'a jamais été
-   mesuré, et les deux valeurs plausibles diffèrent d'un facteur 2. Procédure
-   dans [`CALIBRATION.md`](CALIBRATION.md).
+1. **Calibrer le pitch.** La v1 avait un bug d'échelle — 400 mV/octave au lieu
+   de 1000, soit une octave qui sonnait comme une quarte. Le nouveau firmware
+   part sur la valeur théorique, à vérifier à l'accordeur :
+   [`CALIBRATION.md`](CALIBRATION.md).
+
+### Si un jour on branche le connecteur P1
+
+2. **Trancher la numérotation.** `Plug.txt` et `connector_analysis.md` ne
+   décrivent pas le même ordre de pins. §6 de [`MIDI_MAP.md`](MIDI_MAP.md).
+3. **Ne jamais câbler la pin 2** : rail −14,5 V, mesuré.
+4. **Monter l'étage d'adaptation** avant de passer `KOBOL_OUTPUT_JACK` à 0.
+   Le P1 n'accepte que ±1,5 V, le DAC en sort 4.
 
 ### Pour compléter
 
-4. **Test d'injection sur les pins 3 et 6** (waveforms). La même manipulation
-   qu'en pin 11 — une pile variable et l'oreille, pas besoin d'oscilloscope.
-5. **Trouver la vraie pin du LFO Rate.** Ce n'est pas la pin 2.
-6. **Quatre sorties sur douze n'ont pas de canal PWM** : le S3 n'en offre que 8.
-   Voir §6 de [`MIDI_MAP.md`](MIDI_MAP.md).
+5. **Test d'injection sur les pins 3 et 6** (waveforms) — une pile et l'oreille
+   suffisent, comme pour la pin 11.
+6. **Trouver la vraie pin du LFO Rate.** Ce n'est pas la pin 2.
 
 ## Dépendances
 
-Non versionnées, à installer via le gestionnaire de bibliothèques :
-
-- **Adafruit TinyUSB Library** — USB MIDI natif sur ESP32-S3
-- **MIDI Library** (FortySevenEffects)
-
-Dans l'IDE : *Outils > USB Mode > USB-OTG (TinyUSB)*.
+Aucune bibliothèque externe : `usbMIDI` et `SPI` viennent de Teensyduino.
+Dans l'IDE : *Outils > USB Type > MIDI*.
 
 Le sous-dossier `KobolMidiCV/` porte le nom du sketch : l'IDE Arduino exige que
 le dossier et le `.ino` soient homonymes.
