@@ -28,7 +28,7 @@ DAW / VST ─ USB MIDI ─ Teensy 2.0 ─ SPI ─ MCP4822 ─┬─ canal A ─ 
 | **Carte MIDI, lue** | [`MIDI_MAP.md`](MIDI_MAP.md) — 23 CC + le pitch |
 | **Cohérence** | `python3 tools/check_map.py` |
 | **Calibration** | [`CALIBRATION.md`](CALIBRATION.md) — échelle reprise de la v1, rien à régler |
-| **Firmware** | `KobolMidiCV/` — **compile** (22 % flash, 20 % RAM), jamais téléversé |
+| **Firmware** | `KobolMidiCV/` — **téléversé** sur le Teensy (22 % flash, 20 % RAM) |
 | **VST** | pas commencé |
 | **Séquenceur** | pas commencé |
 
@@ -97,6 +97,33 @@ Le firmware est en **arithmétique entière** : l'ATmega32U4 n'a pas de FPU et
 
 Aucune bibliothèque externe : `usbMIDI` et `SPI` viennent de Teensyduino.
 Dans l'IDE : *Outils > USB Type > MIDI*.
+
+### Pas de port série
+
+En USB Type = MIDI, le Teensy 2.0 n'expose **aucun port série USB** : ses
+options USB sont exclusives, il n'y a pas de « MIDI + Serial » comme sur les
+Teensy 3.x et 4.x. Les `Serial.print` du firmware ne sortent donc nulle part.
+
+Pour observer ce qu'il fait, lui envoyer du MIDI et écouter —
+[`tools/miditest.swift`](tools/miditest.swift) le fait sans DAW :
+
+```sh
+swift tools/miditest.swift              # liste les ports
+swift tools/miditest.swift sweep 74     # balaye le cutoff
+swift tools/miditest.swift scale        # gamme chromatique Do3 -> Do4
+swift tools/miditest.swift cc 118 127   # force le gate ouvert
+```
+
+Deux CC distinguent ce firmware de la v1, qui les ignore : **CC 74** (cutoff)
+et **CC 118** (gate force, la v1 utilisait CC 100).
+
+### Téléverser
+
+Le core Teensy passe par l'application Teensy Loader, qui doit tourner :
+
+```sh
+open ~/Library/Arduino15/packages/teensy/tools/teensy-tools/1.59.0/teensy.app
+```
 
 En ligne de commande, depuis `kobol-expander/midi-cv/` :
 
