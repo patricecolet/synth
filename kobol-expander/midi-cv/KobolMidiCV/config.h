@@ -70,7 +70,10 @@ static const int32_t  DAC_FULL_MV  = 4096;
 // L'entrée visée est plus sensible d'un facteur 2,5. La valeur ci-dessous
 // reproduit donc exactement le comportement validé à l'oreille — ne pas
 // la « corriger » vers 1000 sans avoir mesuré à l'accordeur.
-static int16_t cal_mv_per_octave = 400;
+// Modifiable a l'execution (commande de calibration a venir), donc UNE SEULE
+// definition, dans output.cpp. Un `static` ici donnerait une copie par unite de
+// compilation : le .ino en ajusterait une et output.cpp lirait l'autre.
+extern int16_t cal_mv_per_octave;
 
 // Note produisant 0 mV. La v1 part de la note 0, ce qui place la note 120
 // à 4000 mV, juste sous la pleine échelle du DAC.
@@ -117,29 +120,16 @@ struct KobolParam {
 // le cutoff sont câblés et utilisent la pleine échelle du DAC.
 //
 // rest_mv est un repère de calibration, jamais émis.
-static const KobolParam PARAMS[] = {
-  // CC   pin  dac            vmin   vmax   repos  état          nom
-  {  74,  15,  DAC_CH_CUTOFF,    0,   900,      0, PARAM_CHECK,  "VCF Cutoff"    },
+//
+// La table est DÉFINIE dans output.cpp, pas ici : sur AVR un tableau
+// `static const` est recopié en RAM, et un `static` dans un header en donne
+// une copie par unité de compilation — donc deux fois la même table.
+extern const KobolParam PARAMS[];
 
-  // Décrits, mais sans sortie tant qu'il n'y a qu'un MCP4822.
-  {  71,  12,  DAC_CH_NONE,   -670,   610,    600, PARAM_OK,     "VCF Resonance" },
-  {  73,   8,  DAC_CH_NONE,   -660, -1150,   -520, PARAM_CHECK,  "VCF Attack"    },
-  {  75,   7,  DAC_CH_NONE,  -1350,  -360,  -1270, PARAM_OK,     "VCF Decay"     },
-  { 102,   4,  DAC_CH_NONE,      0,   920,    440, PARAM_OK,     "VCF Sustain"   },
-  { 103,  10,  DAC_CH_NONE,     50,   600,    590, PARAM_OK,     "VCF ADS Ctrl"  },
-  { 105,   5,  DAC_CH_NONE,   -660,  -280,   -500, PARAM_OK,     "VCA Attack"    },
-  { 106,   1,  DAC_CH_NONE,  -1410, -1170,    -90, PARAM_OK,     "VCA Decay"     },
-  { 107,  16,  DAC_CH_NONE,    -30,   940,    460, PARAM_OK,     "VCA Sustain"   },
-  { 109,   9,  DAC_CH_NONE,      0,   610,    600, PARAM_OK,     "VCO2 Volume"   },
-  { 108,  14,  DAC_CH_NONE,    130,   600,      0, PARAM_CHECK,  "VCO1 Volume"   },
-
-  // Bloqués — voir MIDI_MAP.md §6. Jamais émis.
-  { 112,   3,  DAC_CH_NONE, 0, 0, 0, PARAM_BLOCKED, "VCO1 Waveform" },
-  { 113,   6,  DAC_CH_NONE, 0, 0, 0, PARAM_BLOCKED, "VCO2 Waveform" },
-  {  76, 255,  DAC_CH_NONE, 0, 0, 0, PARAM_BLOCKED, "LFO Rate"      },
-};
-
-static const uint8_t PARAM_COUNT = sizeof(PARAMS) / sizeof(PARAMS[0]);
+// Doit valoir le nombre de lignes de PARAMS[] dans output.cpp ; un
+// static_assert là-bas vérifie l'accord. Écrit en dur parce que cette valeur
+// sert de borne de tableau, ce qu'un `extern const` ne permet pas.
+static const uint8_t PARAM_COUNT = 14;
 
 // ─────────────────────────────────────────────────────────────────────
 // Contrôleurs sans sortie CV propre

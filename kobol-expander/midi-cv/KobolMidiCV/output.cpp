@@ -1,6 +1,39 @@
 #include "output.h"
 #include <SPI.h>
 
+// ─────────────────────────────────────────────────────────────────────
+// Definitions uniques (declarees extern dans config.h)
+// ─────────────────────────────────────────────────────────────────────
+
+int16_t cal_mv_per_octave = 400;
+
+const KobolParam PARAMS[] = {
+  // CC   pin  dac            vmin   vmax   repos  état          nom
+  {  74,  15,  DAC_CH_CUTOFF,    0,   900,      0, PARAM_CHECK,  "VCF Cutoff"    },
+
+  // Décrits, mais sans sortie tant qu'il n'y a qu'un MCP4822.
+  {  71,  12,  DAC_CH_NONE,   -670,   610,    600, PARAM_OK,     "VCF Resonance" },
+  {  73,   8,  DAC_CH_NONE,   -660, -1150,   -520, PARAM_CHECK,  "VCF Attack"    },
+  {  75,   7,  DAC_CH_NONE,  -1350,  -360,  -1270, PARAM_OK,     "VCF Decay"     },
+  { 102,   4,  DAC_CH_NONE,      0,   920,    440, PARAM_OK,     "VCF Sustain"   },
+  { 103,  10,  DAC_CH_NONE,     50,   600,    590, PARAM_OK,     "VCF ADS Ctrl"  },
+  { 105,   5,  DAC_CH_NONE,   -660,  -280,   -500, PARAM_OK,     "VCA Attack"    },
+  { 106,   1,  DAC_CH_NONE,  -1410, -1170,    -90, PARAM_OK,     "VCA Decay"     },
+  { 107,  16,  DAC_CH_NONE,    -30,   940,    460, PARAM_OK,     "VCA Sustain"   },
+  { 109,   9,  DAC_CH_NONE,      0,   610,    600, PARAM_OK,     "VCO2 Volume"   },
+  { 108,  14,  DAC_CH_NONE,    130,   600,      0, PARAM_CHECK,  "VCO1 Volume"   },
+
+  // Bloqués — voir MIDI_MAP.md §6. Jamais émis.
+  { 112,   3,  DAC_CH_NONE, 0, 0, 0, PARAM_BLOCKED, "VCO1 Waveform" },
+  { 113,   6,  DAC_CH_NONE, 0, 0, 0, PARAM_BLOCKED, "VCO2 Waveform" },
+  {  76, 255,  DAC_CH_NONE, 0, 0, 0, PARAM_BLOCKED, "LFO Rate"      },
+};
+
+
+static_assert(sizeof(PARAMS) / sizeof(PARAMS[0]) == PARAM_COUNT,
+              "PARAM_COUNT (config.h) ne correspond plus au nombre de lignes de PARAMS[]");
+
+
 static bool s_seen[PARAM_COUNT];   // ce CC est-il déjà arrivé ?
 
 // Écriture MCP4822.

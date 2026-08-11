@@ -28,7 +28,7 @@ DAW / VST ─ USB MIDI ─ Teensy 2.0 ─ SPI ─ MCP4822 ─┬─ canal A ─ 
 | **Carte MIDI, lue** | [`MIDI_MAP.md`](MIDI_MAP.md) — 23 CC + le pitch |
 | **Cohérence** | `python3 tools/check_map.py` |
 | **Calibration** | [`CALIBRATION.md`](CALIBRATION.md) — échelle reprise de la v1, rien à régler |
-| **Firmware** | `KobolMidiCV/` — écrit, jamais compilé ni testé sur cible |
+| **Firmware** | `KobolMidiCV/` — **compile** (22 % flash, 21 % RAM), jamais téléversé |
 | **VST** | pas commencé |
 | **Séquenceur** | pas commencé |
 
@@ -64,9 +64,9 @@ Le firmware est en **arithmétique entière** : l'ATmega32U4 n'a pas de FPU et
 
 ### D'abord
 
-1. **Compiler et téléverser**, puis vérifier que le pitch sonne comme avec la
-   v1 : l'échelle en est reprise à l'identique, vérifiée au millivolt près sur
-   toute la plage MIDI. Puis contrôler que CC 74 pilote bien le cutoff.
+1. **Téléverser**, puis vérifier que le pitch sonne comme avec la v1 : l'échelle
+   en est reprise à l'identique, vérifiée au millivolt près sur toute la plage
+   MIDI. Puis contrôler que CC 74 pilote bien le cutoff.
 
 ### Si un jour on branche le connecteur P1
 
@@ -86,6 +86,16 @@ Le firmware est en **arithmétique entière** : l'ATmega32U4 n'a pas de FPU et
 
 Aucune bibliothèque externe : `usbMIDI` et `SPI` viennent de Teensyduino.
 Dans l'IDE : *Outils > USB Type > MIDI*.
+
+En ligne de commande, depuis `kobol-expander/midi-cv/` :
+
+```sh
+arduino-cli compile  -b teensy:avr:teensy2:usb=midi,speed=16 KobolMidiCV
+arduino-cli upload   -b teensy:avr:teensy2:usb=midi,speed=16 KobolMidiCV
+```
+
+L'option `usb=midi` n'est pas facultative : sans elle `usbMIDI` n'existe pas et
+la compilation échoue.
 
 Le sous-dossier `KobolMidiCV/` porte le nom du sketch : l'IDE Arduino exige que
 le dossier et le `.ino` soient homonymes.
