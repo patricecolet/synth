@@ -28,7 +28,7 @@ DAW / VST ─ USB MIDI ─ Teensy 2.0 ─ SPI ─ MCP4822 ─┬─ canal A ─ 
 | **Carte MIDI, lue** | [`MIDI_MAP.md`](MIDI_MAP.md) — 23 CC + le pitch |
 | **Cohérence** | `python3 tools/check_map.py` |
 | **Calibration** | [`CALIBRATION.md`](CALIBRATION.md) — échelle reprise de la v1, rien à régler |
-| **Firmware** | `KobolMidiCV/` — **compile** (22 % flash, 21 % RAM), jamais téléversé |
+| **Firmware** | `KobolMidiCV/` — **compile** (22 % flash, 20 % RAM), jamais téléversé |
 | **VST** | pas commencé |
 | **Séquenceur** | pas commencé |
 
@@ -42,6 +42,17 @@ Deux sorties CV seulement, puisque le MCP4822 a deux canaux :
 Plus le gate et le PWM du LFO rate. Les douze autres paramètres sont décrits
 dans la table mais sans sortie : il faudra un second MCP4822 sur un autre CS,
 ou passer à l'ESP32.
+
+## Réglage par défaut au démarrage
+
+Le firmware applique le `cc_default` de chaque paramètre dès la mise sous
+tension, plus le pitch à sa note de base et le LFO à 0. La carte part donc d'un
+état connu sans attendre qu'un contrôleur bouge.
+
+Conséquence à connaître : le CV **s'additionne** au potard de façade. Ces
+valeurs décalent donc le réglage du Kobol au branchement. Pour qu'un paramètre
+reparte de la façade, mettre son `cc_default` à la valeur dont `ccToMv()` tire
+0 mV — soit 0 en sortie jack.
 
 ## Structure
 

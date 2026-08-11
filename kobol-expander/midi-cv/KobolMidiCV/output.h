@@ -18,10 +18,6 @@ void outputReport();
 // Ce paramètre a-t-il une sortie ?
 bool outputIsLive(uint8_t param_index);
 
-// Signale qu'un CC est arrivé : à partir de là, la sortie est écrite.
-// Avant, la pin reste au repos et le potard de façade garde la main.
-void outputMarkSeen(uint8_t param_index);
-
 void outputWriteMv(uint8_t param_index, int32_t mv);
 void outputWritePitchMv(int32_t mv);
 void outputWriteGate(bool on);

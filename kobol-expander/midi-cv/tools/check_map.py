@@ -17,29 +17,30 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 JSON_PATH = ROOT / "midi-map.json"
-CONFIG_PATH = ROOT / "KobolMidiCV" / "config.h"
+CONFIG_PATH = ROOT / "KobolMidiCV" / "output.cpp"   # la table PARAMS[] y est definie
 
 STATE_MAP = {"PARAM_OK": "ok", "PARAM_CHECK": "check", "PARAM_BLOCKED": "blocked"}
 
-# { 74, 15, DAC_CH_CUTOFF, 0, 900, 0, PARAM_CHECK, "VCF Cutoff" },
+# { 74, 15, DAC_CH_CUTOFF, 0, 900, 0, 90, PARAM_CHECK, "VCF Cutoff" },
 ROW = re.compile(
     r"\{\s*(\d+)\s*,\s*(\d+)\s*,\s*(\w+)\s*,"
-    r"\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*,"
+    r"\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(\d+)\s*,"
     r"\s*(PARAM_\w+)\s*,\s*\"([^\"]+)\"\s*\}"
 )
 
 
 def parse_config(text):
-    body = text[text.index("static const KobolParam PARAMS[] = {"):]
+    body = text[text.index("const KobolParam PARAMS[] = {"):]
     body = body[: body.index("\n};")]
     out = {}
     for m in ROW.finditer(body):
-        cc, pin, dac, vmin, vmax, rest, state, name = m.groups()
+        cc, pin, dac, vmin, vmax, rest, dflt, state, name = m.groups()
         out[int(cc)] = {
             "name": name,
             "p1_pin": int(pin),
             "dac": dac,
             "mv": {"min": int(vmin), "max": int(vmax), "rest": int(rest)},
+            "default": int(dflt),
             "state": STATE_MAP[state],
         }
     return out
@@ -74,6 +75,10 @@ def main():
                 errors.append(
                     f"CC {cc} ({j['name']}) : mv.{k} {j['mv'][k]} vs {c['mv'][k]}"
                 )
+        if j.get("default") != c["default"]:
+            errors.append(
+                f"CC {cc} ({j['name']}) : defaut {j.get('default')} vs {c['default']}"
+            )
         j_has_dac = j["dac_channel"] is not None
         c_has_dac = c["dac"] != "DAC_CH_NONE"
         if j_has_dac != c_has_dac:
@@ -91,7 +96,7 @@ def main():
         seen[cc] = entry["name"]
 
     if errors:
-        print(f"{len(errors)} desaccord(s) entre midi-map.json et config.h :\n")
+        print(f"{len(errors)} desaccord(s) entre midi-map.json et output.cpp :\n")
         for e in errors:
             print(f"  - {e}")
         return 1

@@ -202,7 +202,6 @@ static void onControlChange(byte channel, byte control, byte value) {
   const int8_t idx = paramIndexForCC(control);
   if (idx >= 0) {
     cc_value[idx] = value;
-    outputMarkSeen((uint8_t)idx);   // à partir d'ici la carte prend la main
     applyParam((uint8_t)idx);
     return;
   }

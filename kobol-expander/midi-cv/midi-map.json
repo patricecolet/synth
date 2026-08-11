@@ -3,7 +3,6 @@
   "device": "RSF Kobol Expander MIDI/CV",
   "version": 1,
   "midi_channel": 1,
-
   "pitch": {
     "name": "Pitch",
     "driven_by": "note",
@@ -15,42 +14,259 @@
     "bend_cents_max": 200,
     "_comment": "Reprend v1-first-release/kobolDAC.ino, qui tourne dans le Teensy et sonne juste : 4000 unités DAC pour 120 demi-tons. Ce n'est pas du 1 V/oct malgré ce qu'annonce le README de la v1."
   },
-
   "parameters": [
-    { "cc": 74,  "name": "VCF Cutoff",    "group": "VCF", "p1_pin": 15, "dac_channel": "B",    "state": "check",   "mv": { "min": 0,     "max": 900,   "rest": 0 } },
-    { "cc": 71,  "name": "VCF Resonance", "group": "VCF", "p1_pin": 12, "dac_channel": null,   "state": "ok",      "mv": { "min": -670,  "max": 610,   "rest": 600 } },
-    { "cc": 73,  "name": "VCF Attack",    "group": "VCF", "p1_pin": 8,  "dac_channel": null,   "state": "check",   "mv": { "min": -660,  "max": -1150, "rest": -520 } },
-    { "cc": 75,  "name": "VCF Decay",     "group": "VCF", "p1_pin": 7,  "dac_channel": null,   "state": "ok",      "mv": { "min": -1350, "max": -360,  "rest": -1270 } },
-    { "cc": 102, "name": "VCF Sustain",   "group": "VCF", "p1_pin": 4,  "dac_channel": null,   "state": "ok",      "mv": { "min": 0,     "max": 920,   "rest": 440 } },
-    { "cc": 103, "name": "VCF ADS Ctrl",  "group": "VCF", "p1_pin": 10, "dac_channel": null,   "state": "ok",      "mv": { "min": 50,    "max": 600,   "rest": 590 } },
-    { "cc": 105, "name": "VCA Attack",    "group": "VCA", "p1_pin": 5,  "dac_channel": null,   "state": "ok",      "mv": { "min": -660,  "max": -280,  "rest": -500 } },
-    { "cc": 106, "name": "VCA Decay",     "group": "VCA", "p1_pin": 1,  "dac_channel": null,   "state": "ok",      "mv": { "min": -1410, "max": -1170, "rest": -90 } },
-    { "cc": 107, "name": "VCA Sustain",   "group": "VCA", "p1_pin": 16, "dac_channel": null,   "state": "ok",      "mv": { "min": -30,   "max": 940,   "rest": 460 } },
-    { "cc": 109, "name": "VCO2 Volume",   "group": "VCO", "p1_pin": 9,  "dac_channel": null,   "state": "ok",      "mv": { "min": 0,     "max": 610,   "rest": 600 } },
-    { "cc": 108, "name": "VCO1 Volume",   "group": "VCO", "p1_pin": 14, "dac_channel": null,   "state": "check",   "mv": { "min": 130,   "max": 600,   "rest": 0 } },
-    { "cc": 112, "name": "VCO1 Waveform", "group": "VCO", "p1_pin": 3,  "dac_channel": null,   "state": "blocked", "mv": { "min": 0,     "max": 0,     "rest": 0 } },
-    { "cc": 113, "name": "VCO2 Waveform", "group": "VCO", "p1_pin": 6,  "dac_channel": null,   "state": "blocked", "mv": { "min": 0,     "max": 0,     "rest": 0 } },
-    { "cc": 76,  "name": "LFO Rate",      "group": "LFO", "p1_pin": null, "dac_channel": null, "state": "blocked", "mv": { "min": 0,     "max": 0,     "rest": 0 } }
+    {
+      "cc": 74,
+      "name": "VCF Cutoff",
+      "group": "VCF",
+      "p1_pin": 15,
+      "dac_channel": "B",
+      "state": "check",
+      "mv": {
+        "min": 0,
+        "max": 900,
+        "rest": 0
+      },
+      "default": 90
+    },
+    {
+      "cc": 71,
+      "name": "VCF Resonance",
+      "group": "VCF",
+      "p1_pin": 12,
+      "dac_channel": null,
+      "state": "ok",
+      "mv": {
+        "min": -670,
+        "max": 610,
+        "rest": 600
+      },
+      "default": 0
+    },
+    {
+      "cc": 73,
+      "name": "VCF Attack",
+      "group": "VCF",
+      "p1_pin": 8,
+      "dac_channel": null,
+      "state": "check",
+      "mv": {
+        "min": -660,
+        "max": -1150,
+        "rest": -520
+      },
+      "default": 0
+    },
+    {
+      "cc": 75,
+      "name": "VCF Decay",
+      "group": "VCF",
+      "p1_pin": 7,
+      "dac_channel": null,
+      "state": "ok",
+      "mv": {
+        "min": -1350,
+        "max": -360,
+        "rest": -1270
+      },
+      "default": 40
+    },
+    {
+      "cc": 102,
+      "name": "VCF Sustain",
+      "group": "VCF",
+      "p1_pin": 4,
+      "dac_channel": null,
+      "state": "ok",
+      "mv": {
+        "min": 0,
+        "max": 920,
+        "rest": 440
+      },
+      "default": 90
+    },
+    {
+      "cc": 103,
+      "name": "VCF ADS Ctrl",
+      "group": "VCF",
+      "p1_pin": 10,
+      "dac_channel": null,
+      "state": "ok",
+      "mv": {
+        "min": 50,
+        "max": 600,
+        "rest": 590
+      },
+      "default": 64
+    },
+    {
+      "cc": 105,
+      "name": "VCA Attack",
+      "group": "VCA",
+      "p1_pin": 5,
+      "dac_channel": null,
+      "state": "ok",
+      "mv": {
+        "min": -660,
+        "max": -280,
+        "rest": -500
+      },
+      "default": 0
+    },
+    {
+      "cc": 106,
+      "name": "VCA Decay",
+      "group": "VCA",
+      "p1_pin": 1,
+      "dac_channel": null,
+      "state": "ok",
+      "mv": {
+        "min": -1410,
+        "max": -1170,
+        "rest": -90
+      },
+      "default": 40
+    },
+    {
+      "cc": 107,
+      "name": "VCA Sustain",
+      "group": "VCA",
+      "p1_pin": 16,
+      "dac_channel": null,
+      "state": "ok",
+      "mv": {
+        "min": -30,
+        "max": 940,
+        "rest": 460
+      },
+      "default": 100
+    },
+    {
+      "cc": 109,
+      "name": "VCO2 Volume",
+      "group": "VCO",
+      "p1_pin": 9,
+      "dac_channel": null,
+      "state": "ok",
+      "mv": {
+        "min": 0,
+        "max": 610,
+        "rest": 600
+      },
+      "default": 100
+    },
+    {
+      "cc": 108,
+      "name": "VCO1 Volume",
+      "group": "VCO",
+      "p1_pin": 14,
+      "dac_channel": null,
+      "state": "check",
+      "mv": {
+        "min": 130,
+        "max": 600,
+        "rest": 0
+      },
+      "default": 100
+    },
+    {
+      "cc": 112,
+      "name": "VCO1 Waveform",
+      "group": "VCO",
+      "p1_pin": 3,
+      "dac_channel": null,
+      "state": "blocked",
+      "mv": {
+        "min": 0,
+        "max": 0,
+        "rest": 0
+      },
+      "default": 0
+    },
+    {
+      "cc": 113,
+      "name": "VCO2 Waveform",
+      "group": "VCO",
+      "p1_pin": 6,
+      "dac_channel": null,
+      "state": "blocked",
+      "mv": {
+        "min": 0,
+        "max": 0,
+        "rest": 0
+      },
+      "default": 0
+    }
   ],
-
   "modulation": [
-    { "cc": 1,   "name": "Mod Wheel",             "range": "0-127", "target": "profondeur LFO", "implemented": false },
-    { "cc": 5,   "name": "Portamento Time",       "range": "0-127", "unit": "×10 ms",           "implemented": true, "default": 0 },
-    { "cc": 65,  "name": "Portamento On/Off",     "range": "switch",                            "implemented": true, "default": 127 },
-    { "cc": 114, "name": "Velocity to Cutoff On", "range": "0-127",                             "implemented": true, "default": 0 },
-    { "cc": 115, "name": "Velocity to Cutoff Off","range": "0-127",                             "implemented": true, "default": 0 },
-    { "cc": 116, "name": "Velocity to VCA",       "range": "0-127",                             "implemented": true, "default": 0 },
-    { "cc": 118, "name": "Gate Force",            "range": "switch",                            "implemented": true, "default": 0 }
+    {
+      "cc": 76,
+      "name": "LFO Rate",
+      "range": "0-127",
+      "target": "PWM Teensy pin 10",
+      "implemented": true,
+      "default": 0,
+      "_comment": "Sortie PWM et non DAC : hors de PARAMS[] dans le firmware, sinon paramIndexForCC() l'intercepterait et le handler ne serait jamais atteint."
+    },
+    {
+      "cc": 1,
+      "name": "Mod Wheel",
+      "range": "0-127",
+      "target": "profondeur LFO",
+      "implemented": false
+    },
+    {
+      "cc": 5,
+      "name": "Portamento Time",
+      "range": "0-127",
+      "unit": "×10 ms",
+      "implemented": true,
+      "default": 0
+    },
+    {
+      "cc": 65,
+      "name": "Portamento On/Off",
+      "range": "switch",
+      "implemented": true,
+      "default": 127
+    },
+    {
+      "cc": 114,
+      "name": "Velocity to Cutoff On",
+      "range": "0-127",
+      "implemented": true,
+      "default": 0
+    },
+    {
+      "cc": 115,
+      "name": "Velocity to Cutoff Off",
+      "range": "0-127",
+      "implemented": true,
+      "default": 0
+    },
+    {
+      "cc": 116,
+      "name": "Velocity to VCA",
+      "range": "0-127",
+      "implemented": true,
+      "default": 0
+    },
+    {
+      "cc": 118,
+      "name": "Gate Force",
+      "range": "switch",
+      "implemented": true,
+      "default": 0
+    }
   ],
-
   "states": {
-    "ok":      "plage mesurée, pin confirmée",
-    "check":   "pin fonctionnelle mais plage à confirmer",
+    "ok": "plage mesurée, pin confirmée",
+    "check": "pin fonctionnelle mais plage à confirmer",
     "blocked": "en attente de mesure, jamais émis par le firmware"
   },
-
   "forbidden": {
     "p1_pin_2": "rail -14,5 V, ne jamais y connecter de sortie",
     "p1_pin_13": "VCO1 Frequency, réglage manuel par choix"
-  }
+  },
+  "_startup": "Le firmware applique le champ 'default' de chaque parametre au demarrage. Le CV s'additionne au potard de facade : ces valeurs decalent donc le reglage du Kobol des la mise sous tension."
 }

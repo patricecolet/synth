@@ -105,15 +105,19 @@ struct KobolParam {
   int16_t     v_min_mv;     // tension pour CC = 0
   int16_t     v_max_mv;     // tension pour CC = 127
   int16_t     rest_mv;      // tension au repos, potard au centre
+  uint8_t     cc_default;   // valeur appliquée au démarrage
   ParamState  state;
   const char* name;
 };
 
-// AUCUNE valeur par défaut : le firmware n'écrit sur une sortie qu'après
-// avoir reçu son CC. Le CV s'ADDITIONNE au potard de façade
-// (connector_analysis.md : « CV externe + potentiomètre = contrôle
-// hybride »), donc écrire au démarrage décalerait le réglage du Kobol
-// avant qu'on ait touché à quoi que ce soit.
+// Le firmware applique cc_default sur toutes les sorties au démarrage : la
+// carte part d'un état connu, sans attendre qu'un contrôleur bouge.
+//
+// À savoir : le CV s'ADDITIONNE au potard de façade (connector_analysis.md,
+// « CV externe + potentiomètre = contrôle hybride »). Les valeurs ci-dessous
+// décalent donc le réglage du Kobol dès la mise sous tension. Pour qu'un
+// paramètre reparte de la façade, mettre son cc_default à la valeur dont
+// ccToMv() tire 0 mV — soit 0 en sortie jack.
 //
 // v_min_mv / v_max_mv sont les plages relevées AU CONNECTEUR P1. Elles ne
 // valent que pour KOBOL_OUTPUT_JACK = 0. En sortie jack, seuls le pitch et
@@ -129,7 +133,7 @@ extern const KobolParam PARAMS[];
 // Doit valoir le nombre de lignes de PARAMS[] dans output.cpp ; un
 // static_assert là-bas vérifie l'accord. Écrit en dur parce que cette valeur
 // sert de borne de tableau, ce qu'un `extern const` ne permet pas.
-static const uint8_t PARAM_COUNT = 14;
+static const uint8_t PARAM_COUNT = 13;
 
 // ─────────────────────────────────────────────────────────────────────
 // Contrôleurs sans sortie CV propre
@@ -138,7 +142,11 @@ static const uint8_t PARAM_COUNT = 14;
 static const uint8_t CC_MODWHEEL       = 1;
 static const uint8_t CC_PORTAMENTO_MS  = 5;
 static const uint8_t CC_PORTAMENTO_SW  = 65;
+// LFO Rate : sortie PWM et non DAC, donc traité hors de PARAMS[]. Il ne doit
+// PAS y figurer : paramIndexForCC() le capterait et le switch ne serait jamais
+// atteint.
 static const uint8_t CC_LFO_RATE       = 76;   // PWM sur PIN_LFO_PWM
+static const uint8_t CC_LFO_RATE_DEFAULT = 0;  // appliqué au démarrage
 static const uint8_t CC_VEL_TO_CUT_ON  = 114;
 static const uint8_t CC_VEL_TO_CUT_OFF = 115;
 static const uint8_t CC_VEL_TO_VCA     = 116;

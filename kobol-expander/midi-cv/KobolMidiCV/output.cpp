@@ -8,33 +8,30 @@
 int16_t cal_mv_per_octave = 400;
 
 const KobolParam PARAMS[] = {
-  // CC   pin  dac            vmin   vmax   repos  état          nom
-  {  74,  15,  DAC_CH_CUTOFF,    0,   900,      0, PARAM_CHECK,  "VCF Cutoff"    },
+  // CC   pin  dac            vmin   vmax   repos  def  état          nom
+  {  74,  15,  DAC_CH_CUTOFF,    0,   900,      0,  90, PARAM_CHECK,  "VCF Cutoff"    },
 
   // Décrits, mais sans sortie tant qu'il n'y a qu'un MCP4822.
-  {  71,  12,  DAC_CH_NONE,   -670,   610,    600, PARAM_OK,     "VCF Resonance" },
-  {  73,   8,  DAC_CH_NONE,   -660, -1150,   -520, PARAM_CHECK,  "VCF Attack"    },
-  {  75,   7,  DAC_CH_NONE,  -1350,  -360,  -1270, PARAM_OK,     "VCF Decay"     },
-  { 102,   4,  DAC_CH_NONE,      0,   920,    440, PARAM_OK,     "VCF Sustain"   },
-  { 103,  10,  DAC_CH_NONE,     50,   600,    590, PARAM_OK,     "VCF ADS Ctrl"  },
-  { 105,   5,  DAC_CH_NONE,   -660,  -280,   -500, PARAM_OK,     "VCA Attack"    },
-  { 106,   1,  DAC_CH_NONE,  -1410, -1170,    -90, PARAM_OK,     "VCA Decay"     },
-  { 107,  16,  DAC_CH_NONE,    -30,   940,    460, PARAM_OK,     "VCA Sustain"   },
-  { 109,   9,  DAC_CH_NONE,      0,   610,    600, PARAM_OK,     "VCO2 Volume"   },
-  { 108,  14,  DAC_CH_NONE,    130,   600,      0, PARAM_CHECK,  "VCO1 Volume"   },
+  {  71,  12,  DAC_CH_NONE,   -670,   610,    600,   0, PARAM_OK,     "VCF Resonance" },
+  {  73,   8,  DAC_CH_NONE,   -660, -1150,   -520,   0, PARAM_CHECK,  "VCF Attack"    },
+  {  75,   7,  DAC_CH_NONE,  -1350,  -360,  -1270,  40, PARAM_OK,     "VCF Decay"     },
+  { 102,   4,  DAC_CH_NONE,      0,   920,    440,  90, PARAM_OK,     "VCF Sustain"   },
+  { 103,  10,  DAC_CH_NONE,     50,   600,    590,  64, PARAM_OK,     "VCF ADS Ctrl"  },
+  { 105,   5,  DAC_CH_NONE,   -660,  -280,   -500,   0, PARAM_OK,     "VCA Attack"    },
+  { 106,   1,  DAC_CH_NONE,  -1410, -1170,    -90,  40, PARAM_OK,     "VCA Decay"     },
+  { 107,  16,  DAC_CH_NONE,    -30,   940,    460, 100, PARAM_OK,     "VCA Sustain"   },
+  { 109,   9,  DAC_CH_NONE,      0,   610,    600, 100, PARAM_OK,     "VCO2 Volume"   },
+  { 108,  14,  DAC_CH_NONE,    130,   600,      0, 100, PARAM_CHECK,  "VCO1 Volume"   },
 
   // Bloqués — voir MIDI_MAP.md §6. Jamais émis.
-  { 112,   3,  DAC_CH_NONE, 0, 0, 0, PARAM_BLOCKED, "VCO1 Waveform" },
-  { 113,   6,  DAC_CH_NONE, 0, 0, 0, PARAM_BLOCKED, "VCO2 Waveform" },
-  {  76, 255,  DAC_CH_NONE, 0, 0, 0, PARAM_BLOCKED, "LFO Rate"      },
+  { 112,   3,  DAC_CH_NONE, 0, 0, 0, 0, PARAM_BLOCKED, "VCO1 Waveform" },
+  { 113,   6,  DAC_CH_NONE, 0, 0, 0, 0, PARAM_BLOCKED, "VCO2 Waveform" },
 };
 
 
 static_assert(sizeof(PARAMS) / sizeof(PARAMS[0]) == PARAM_COUNT,
               "PARAM_COUNT (config.h) ne correspond plus au nombre de lignes de PARAMS[]");
 
-
-static bool s_seen[PARAM_COUNT];   // ce CC est-il déjà arrivé ?
 
 // Écriture MCP4822.
 //
@@ -81,14 +78,14 @@ uint8_t outputBegin() {
   analogWrite(PIN_LFO_PWM, 0);
 
   uint8_t live = 0;
-  for (uint8_t i = 0; i < PARAM_COUNT; i++) {
-    s_seen[i] = false;
+  for (uint8_t i = 0; i < PARAM_COUNT; i++)
     if (PARAMS[i].dac_ch != DAC_CH_NONE && PARAMS[i].state != PARAM_BLOCKED) live++;
-  }
 
-  // Le pitch est posé à 0 mV : en sortie jack c'est l'absence de CV, donc
-  // le Kobol reste sur son accord de façade.
+  // Pitch au point de départ : note CAL_BASE_NOTE, soit 0 mV.
   dacWrite(DAC_CH_PITCH, 0);
+
+  // Le LFO n'est pas dans PARAMS[] (sortie PWM, pas DAC) : son défaut est posé ici.
+  outputWriteLfoRate(CC_LFO_RATE_DEFAULT);
 
   return live;
 }
@@ -115,15 +112,8 @@ bool outputIsLive(uint8_t i) {
   return PARAMS[i].dac_ch != DAC_CH_NONE && PARAMS[i].state != PARAM_BLOCKED;
 }
 
-void outputMarkSeen(uint8_t i) {
-  if (i < PARAM_COUNT) s_seen[i] = true;
-}
-
 void outputWriteMv(uint8_t i, int32_t mv) {
   if (!outputIsLive(i)) return;
-  // Tant que le CC n'est pas venu, on ne touche pas à la sortie : le potard
-  // de façade garde la main et le Kobol sonne comme sans la carte.
-  if (!s_seen[i]) return;
   dacWrite(PARAMS[i].dac_ch, mvToCode(mv));
 }
 
