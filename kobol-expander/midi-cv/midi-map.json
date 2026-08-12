@@ -12,7 +12,14 @@
     "mv_per_octave": 400,
     "calibrated": true,
     "bend_cents_max": 200,
-    "_comment": "Reprend v1-first-release/kobolDAC.ino, qui tourne dans le Teensy et sonne juste : 4000 unités DAC pour 120 demi-tons. Ce n'est pas du 1 V/oct malgré ce qu'annonce le README de la v1."
+    "_comment": "Reprend v1-first-release/kobolDAC.ino, qui tourne dans le Teensy et sonne juste : 4000 unités DAC pour 120 demi-tons. Ce n'est pas du 1 V/oct malgré ce qu'annonce le README de la v1.",
+    "section": "vco",
+    "type": "knob",
+    "pos": [
+      0.3,
+      0.705
+    ],
+    "size": 0.045
   },
   "parameters": [
     {
@@ -29,7 +36,15 @@
       },
       "default": 90,
       "short": "Cutoff",
-      "wired": true
+      "wired": true,
+      "section": "vcf",
+      "type": "knob",
+      "pos": [
+        0.539,
+        0.285
+      ],
+      "size": 0.045,
+      "learn": null
     },
     {
       "cc": 71,
@@ -45,7 +60,15 @@
       },
       "default": 0,
       "short": "Reso",
-      "wired": false
+      "wired": false,
+      "section": "vcf",
+      "type": "knob",
+      "pos": [
+        0.618,
+        0.285
+      ],
+      "size": 0.045,
+      "learn": null
     },
     {
       "cc": 73,
@@ -61,7 +84,15 @@
       },
       "default": 0,
       "short": "VcfAtk",
-      "wired": false
+      "wired": false,
+      "section": "env",
+      "type": "knob",
+      "pos": [
+        0.697,
+        0.705
+      ],
+      "size": 0.045,
+      "learn": null
     },
     {
       "cc": 75,
@@ -77,7 +108,15 @@
       },
       "default": 40,
       "short": "VcfDec",
-      "wired": false
+      "wired": false,
+      "section": "env",
+      "type": "knob",
+      "pos": [
+        0.776,
+        0.705
+      ],
+      "size": 0.045,
+      "learn": null
     },
     {
       "cc": 102,
@@ -93,7 +132,15 @@
       },
       "default": 90,
       "short": "VcfSus",
-      "wired": false
+      "wired": false,
+      "section": "env",
+      "type": "knob",
+      "pos": [
+        0.855,
+        0.705
+      ],
+      "size": 0.045,
+      "learn": null
     },
     {
       "cc": 103,
@@ -109,7 +156,15 @@
       },
       "default": 64,
       "short": "AdsCtl",
-      "wired": false
+      "wired": false,
+      "section": "vcf",
+      "type": "knob",
+      "pos": [
+        0.618,
+        0.705
+      ],
+      "size": 0.045,
+      "learn": null
     },
     {
       "cc": 105,
@@ -125,7 +180,15 @@
       },
       "default": 0,
       "short": "VcaAtk",
-      "wired": false
+      "wired": false,
+      "section": "env",
+      "type": "knob",
+      "pos": [
+        0.697,
+        0.285
+      ],
+      "size": 0.045,
+      "learn": null
     },
     {
       "cc": 106,
@@ -141,7 +204,15 @@
       },
       "default": 40,
       "short": "VcaDec",
-      "wired": false
+      "wired": false,
+      "section": "env",
+      "type": "knob",
+      "pos": [
+        0.776,
+        0.285
+      ],
+      "size": 0.045,
+      "learn": null
     },
     {
       "cc": 107,
@@ -157,7 +228,15 @@
       },
       "default": 100,
       "short": "VcaSus",
-      "wired": false
+      "wired": false,
+      "section": "env",
+      "type": "knob",
+      "pos": [
+        0.855,
+        0.285
+      ],
+      "size": 0.045,
+      "learn": null
     },
     {
       "cc": 109,
@@ -173,7 +252,15 @@
       },
       "default": 100,
       "short": "Vol2",
-      "wired": false
+      "wired": false,
+      "section": "vco",
+      "type": "knob",
+      "pos": [
+        0.457,
+        0.705
+      ],
+      "size": 0.045,
+      "learn": null
     },
     {
       "cc": 108,
@@ -189,7 +276,15 @@
       },
       "default": 100,
       "short": "Vol1",
-      "wired": false
+      "wired": false,
+      "section": "vco",
+      "type": "knob",
+      "pos": [
+        0.457,
+        0.285
+      ],
+      "size": 0.045,
+      "learn": null
     },
     {
       "cc": 112,
@@ -205,7 +300,15 @@
       },
       "default": 0,
       "short": "Wave1",
-      "wired": false
+      "wired": false,
+      "section": "vco",
+      "type": "knob",
+      "pos": [
+        0.379,
+        0.285
+      ],
+      "size": 0.045,
+      "learn": null
     },
     {
       "cc": 113,
@@ -221,7 +324,15 @@
       },
       "default": 0,
       "short": "Wave2",
-      "wired": false
+      "wired": false,
+      "section": "vco",
+      "type": "knob",
+      "pos": [
+        0.379,
+        0.705
+      ],
+      "size": 0.045,
+      "learn": null
     }
   ],
   "modulation": [
@@ -235,7 +346,15 @@
       "_comment": "Sortie PWM et non DAC : hors de PARAMS[] dans le firmware, sinon paramIndexForCC() l'intercepterait et le handler ne serait jamais atteint.",
       "short": "LfoRate",
       "group": "LFO",
-      "wired": true
+      "wired": true,
+      "section": "lfo",
+      "type": "knob",
+      "pos": [
+        0.068,
+        0.285
+      ],
+      "size": 0.045,
+      "learn": null
     },
     {
       "cc": 1,
@@ -245,7 +364,12 @@
       "implemented": false,
       "short": "Mod",
       "group": "Mod",
-      "wired": false
+      "wired": false,
+      "section": "mod",
+      "type": "knob",
+      "pos": null,
+      "size": 0.045,
+      "learn": null
     },
     {
       "cc": 5,
@@ -256,7 +380,12 @@
       "default": 0,
       "short": "Porta",
       "group": "Mod",
-      "wired": true
+      "wired": true,
+      "section": "mod",
+      "type": "knob",
+      "pos": null,
+      "size": 0.045,
+      "learn": null
     },
     {
       "cc": 65,
@@ -266,7 +395,12 @@
       "default": 127,
       "short": "PortSw",
       "group": "Mod",
-      "wired": true
+      "wired": true,
+      "section": "mod",
+      "type": "knob",
+      "pos": null,
+      "size": 0.045,
+      "learn": null
     },
     {
       "cc": 114,
@@ -276,7 +410,12 @@
       "default": 0,
       "short": "VelCutN",
       "group": "Mod",
-      "wired": true
+      "wired": true,
+      "section": "mod",
+      "type": "knob",
+      "pos": null,
+      "size": 0.045,
+      "learn": null
     },
     {
       "cc": 115,
@@ -286,7 +425,12 @@
       "default": 0,
       "short": "VelCutF",
       "group": "Mod",
-      "wired": true
+      "wired": true,
+      "section": "mod",
+      "type": "knob",
+      "pos": null,
+      "size": 0.045,
+      "learn": null
     },
     {
       "cc": 116,
@@ -296,7 +440,12 @@
       "default": 0,
       "short": "VelVca",
       "group": "Mod",
-      "wired": false
+      "wired": false,
+      "section": "mod",
+      "type": "knob",
+      "pos": null,
+      "size": 0.045,
+      "learn": null
     },
     {
       "cc": 118,
@@ -306,7 +455,12 @@
       "default": 0,
       "short": "Gate",
       "group": "Mod",
-      "wired": true
+      "wired": true,
+      "section": "mod",
+      "type": "knob",
+      "pos": null,
+      "size": 0.045,
+      "learn": null
     }
   ],
   "states": {
@@ -322,6 +476,68 @@
   "_fields": {
     "short": "Nom court (<= 7 car.) pour les zones etroites du VST.",
     "group": "VCF / VCA / VCO / LFO / Mod — regroupement d'affichage.",
-    "wired": "Le parametre a-t-il un effet AUDIBLE aujourd'hui ? Pas « decrit dans la table » : CC 116 module le VCA Sustain, qui n'a pas de sortie, donc false."
+    "wired": "Le parametre a-t-il un effet AUDIBLE aujourd'hui ? Pas « decrit dans la table » : CC 116 module le VCA Sustain, qui n'a pas de sortie, donc false.",
+    "section": "Section du panneau = une PAGE sur le materiel, une zone sur l'ecran bureau.",
+    "type": "knob | switch | selector — ce que le rendu doit dessiner.",
+    "pos": "[x, y] normalises 0..1 sur le panneau entier. null = pas de controle physique (modulation logicielle).",
+    "size": "Diametre, en fraction de la LARGEUR du panneau.",
+    "learn": "CC entrant remappe vers ce parametre. null = aucun. Renseigne par le mode Learn."
+  },
+  "panel": {
+    "image": "kobol-expander.jpg",
+    "aspect": 3.18,
+    "_comment": "Ratio 3,18:1. Sur un ecran 320x240 la photo ne fait que 320x101 : 58 % de hauteur perdue, potards a 12 px, labels a 1 px. L'image sert a l'editeur bureau ; le materiel dessine les sections a partir de 'section' et 'pos'.",
+    "sections": [
+      {
+        "id": "lfo",
+        "name": "LFO",
+        "rect": [
+          0.02,
+          0.05,
+          0.16,
+          0.9
+        ]
+      },
+      {
+        "id": "vco",
+        "name": "VCO",
+        "rect": [
+          0.2,
+          0.05,
+          0.3,
+          0.9
+        ]
+      },
+      {
+        "id": "vcf",
+        "name": "VCF",
+        "rect": [
+          0.51,
+          0.05,
+          0.15,
+          0.9
+        ]
+      },
+      {
+        "id": "env",
+        "name": "ADS",
+        "rect": [
+          0.66,
+          0.05,
+          0.25,
+          0.9
+        ]
+      },
+      {
+        "id": "mod",
+        "name": "Mod",
+        "rect": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    ]
   }
 }

@@ -39,36 +39,38 @@ TARGET = VST_ROOT / "Source" / "DeviceProfile.cpp"
 PROFILE = VST_ROOT / "Profiles" / "kobol-expander.json"
 
 
-def rows(data):
-    out = []
-    for e in data["parameters"] + data["modulation"]:
-        out.append((int(e["cc"]), e["short"], e["name"], e["group"], bool(e["wired"])))
-    return out
+def entries(data):
+    """Toutes les entrees du profil, dans l'ordre d'affichage."""
+    return data["parameters"] + data["modulation"]
 
 
 def build_json(data):
-    """Le profil tel que le plugin le lira."""
-    rs = rows(data)
-    w_cc = max(len(str(r[0])) for r in rs)
-    w_sh = max(len(f'"{r[1]}",') for r in rs)
-    w_nm = max(len(f'"{r[2]}",') for r in rs)
+    """Le profil tel que le plugin le lira. Format v2 : panneau + positions +
+    learn, en plus du nommage des CC."""
+    import json as _json
 
-    lines = ["{", '  "name": "Kobol Expander",', '  "parameters": [']
-    for i, (cc, short, name, group, wired) in enumerate(rs):
-        comma = "," if i < len(rs) - 1 else ""
-        lines.append(
-            '    {{ "cc": {cc:>{wc}}, "short": {sh:<{ws}} "name": {nm:<{wn}} '
-            '"group": "{gr}", "wired": {wd:<5} }}{c}'.format(
-                cc=cc, wc=w_cc,
-                sh=f'"{short}",', ws=w_sh,
-                nm=f'"{name}",', wn=w_nm,
-                gr=group,
-                wd="true" if wired else "false",
-                c=comma,
-            )
-        )
-    lines += ["  ]", "}"]
-    return "\n".join(lines)
+    out = {
+        "schema": 2,
+        "name": "Kobol Expander",
+        "manufacturer": "RSF",
+        "panel": data["panel"],
+        "pitch": data["pitch"],
+        "parameters": [],
+    }
+    for e in entries(data):
+        out["parameters"].append({
+            "cc": int(e["cc"]),
+            "short": e["short"],
+            "name": e["name"],
+            "group": e["group"],
+            "section": e["section"],
+            "type": e["type"],
+            "pos": e["pos"],
+            "size": e["size"],
+            "wired": bool(e["wired"]),
+            "learn": e["learn"],
+        })
+    return _json.dumps(out, ensure_ascii=False, indent=2)
 
 
 def build_block(data):
@@ -104,7 +106,7 @@ def main():
     stale_file = (not PROFILE.exists()) or PROFILE.read_text(encoding="utf-8") != body
 
     if not stale_seed and not stale_file:
-        print(f"OK — profil du plugin a jour ({len(rows(data))} controleurs).")
+        print(f"OK — profil du plugin a jour ({len(entries(data))} controleurs).")
         return 0
 
     if "--write" in sys.argv:
