@@ -98,6 +98,25 @@ Le firmware est en **arithmétique entière** : l'ATmega32U4 n'a pas de FPU et
 Aucune bibliothèque externe : `usbMIDI` et `SPI` viennent de Teensyduino.
 Dans l'IDE : *Outils > USB Type > MIDI*.
 
+### Le nom reste « Teensy MIDI » après un renommage
+
+Le nom affiché ne vient **pas** du descripteur USB mais d'un cache CoreMIDI
+indexé sur l'`uniqueID` du périphérique, dans
+`~/Library/Preferences/ByHost/com.apple.MIDI.<UUID>.plist`. Changer
+`STR_PRODUCT` et téléverser ne suffit donc pas : le système continue d'afficher
+l'ancien nom.
+
+Pour le rafraîchir — **coupe brièvement le MIDI de toutes les applications** :
+
+```sh
+killall MIDIServer
+# puis retirer l'entrée obsolète du plist ByHost (repérée par son uniqueID),
+# et rouvrir n'importe quel client MIDI pour que MIDIServer reparte
+```
+
+Vérifier avec `swift tools/miditest.swift`, qui liste les ports quand il ne
+trouve pas celui qu'il cherche.
+
 ### Pas de port série
 
 En USB Type = MIDI, le Teensy 2.0 n'expose **aucun port série USB** : ses
@@ -129,7 +148,9 @@ Passer par [`build.sh`](build.sh), pas par `arduino-cli` directement :
 
 Le script existe pour deux raisons qu'un appel nu ne couvre pas.
 
-**Le nom du port MIDI.** Le système affiche `Kobol` et non `Teensy MIDI`. Ce
+**Le nom du port MIDI.** Le système affiche `Kobol` et non `Teensy MIDI`.
+Attention, macOS met ce nom en cache : après le premier changement il faut
+vider l'entrée obsolète, voir plus bas. Ce
 nom vient de `STR_PRODUCT`, défini dans le core Teensy
 (`cores/usb_midi/usb_private.h`) sous `#ifndef`. Ce fichier est compilé **avec
 le core**, pas avec notre code : un `#define` dans `config.h` arriverait trop

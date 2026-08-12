@@ -10,12 +10,13 @@
 //   swift tools/miditest.swift note 60 100 500       note, vélocité, durée ms
 //   swift tools/miditest.swift scale                 gamme chromatique
 //
-// Port visé par défaut : « Teensy MIDI ». Surcharger avec KOBOL_MIDI_PORT.
+// Port visé par défaut : « Kobol », nom pose par build.sh via STR_PRODUCT.
+// Surcharger avec la variable d'environnement KOBOL_MIDI_PORT.
 
 import CoreMIDI
 import Foundation
 
-let portName = ProcessInfo.processInfo.environment["KOBOL_MIDI_PORT"] ?? "Teensy MIDI"
+let portName = ProcessInfo.processInfo.environment["KOBOL_MIDI_PORT"] ?? "Kobol"
 let channel: UInt8 = 0   // canal MIDI 1
 
 func displayName(_ obj: MIDIObjectRef) -> String {
