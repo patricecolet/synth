@@ -117,23 +117,38 @@ swift tools/miditest.swift cc 118 127   # force le gate ouvert
 Deux CC distinguent ce firmware de la v1, qui les ignore : **CC 74** (cutoff)
 et **CC 118** (gate force, la v1 utilisait CC 100).
 
-### Téléverser
+### Compiler et téléverser
 
-Le core Teensy passe par l'application Teensy Loader, qui doit tourner :
-
-```sh
-open ~/Library/Arduino15/packages/teensy/tools/teensy-tools/1.59.0/teensy.app
-```
-
-En ligne de commande, depuis `kobol-expander/midi-cv/` :
+Passer par [`build.sh`](build.sh), pas par `arduino-cli` directement :
 
 ```sh
-arduino-cli compile  -b teensy:avr:teensy2:usb=midi,speed=16 KobolMidiCV
-arduino-cli upload   -b teensy:avr:teensy2:usb=midi,speed=16 KobolMidiCV
+./build.sh              # compile
+./build.sh upload       # compile, lance Teensy Loader, téléverse
+./build.sh clean        # recompile tout
 ```
 
-L'option `usb=midi` n'est pas facultative : sans elle `usbMIDI` n'existe pas et
-la compilation échoue.
+Le script existe pour deux raisons qu'un appel nu ne couvre pas.
+
+**Le nom du port MIDI.** Le système affiche `Kobol` et non `Teensy MIDI`. Ce
+nom vient de `STR_PRODUCT`, défini dans le core Teensy
+(`cores/usb_midi/usb_private.h`) sous `#ifndef`. Ce fichier est compilé **avec
+le core**, pas avec notre code : un `#define` dans `config.h` arriverait trop
+tard, il faut un `-D` en ligne de commande. Et il ne peut pas passer par
+`compiler.*.extra_flags`, que la plateforme Teensy n'utilise nulle part dans ses
+recettes — le seul point d'entrée est `build.flags.defs`, qu'il faut donc
+recopier en entier. D'où `CORE_DEFS` dans le script, **à revérifier après une
+mise à jour du core** :
+
+```sh
+grep '^teensy2.build.flags.defs' ~/Library/Arduino15/packages/teensy/hardware/avr/*/boards.txt
+```
+
+**Teensy Loader.** Le core délègue le téléversement à cette application ; si
+elle ne tourne pas, l'upload échoue sur *« Unable find Teensy Loader »*. Le
+script la lance au besoin.
+
+L'option `usb=midi` du FQBN n'est pas facultative : sans elle `usbMIDI`
+n'existe pas et la compilation échoue.
 
 Le sous-dossier `KobolMidiCV/` porte le nom du sketch : l'IDE Arduino exige que
 le dossier et le `.ino` soient homonymes.
