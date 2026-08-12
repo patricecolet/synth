@@ -98,9 +98,16 @@ voir [`reference/README.md`](reference/README.md) et
 (`Plug.txt`, `missing.txt`, `CONSOMATION.txt`, `goldpoint_capa.txt`) sont bien
 versionnés, eux.
 
-Ces fichiers restent présents dans les deux premiers commits. Pour purger
-complètement l'historique avant une publication, il faudra réécrire les
-commits (`git filter-repo`), ce qui n'a pas été fait.
+**L'historique a été purgé** avant la publication : `git filter-repo` a retiré
+ces 104 fichiers de **tous** les commits, pas seulement de la dernière version.
+Le dépôt est passé de 31 Mo à 2,3 Mo. Un commit qui ne faisait que restaurer un
+de ces PDF est devenu vide et a disparu.
+
+Mes propres relevés ont été explicitement conservés à travers la réécriture :
+`Plug.txt`, `missing.txt`, `CONSOMATION.txt`, `goldpoint_capa.txt`. Les PDF
+sortis de mon propre KiCad (`PS-101/hardware/trace/`, `*_schema.pdf`) aussi.
+
+Les fichiers écartés restent **sur le disque local**, seulement plus dans git.
 
 ## Dépôts voisins
 
