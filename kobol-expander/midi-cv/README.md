@@ -27,7 +27,7 @@ DAW / VST ─ USB MIDI ─ Teensy 2.0 ─ SPI ─ MCP4822 ─┬─ canal A ─ 
 | **Carte MIDI, lisible** | [`midi-map.json`](midi-map.json) — source unique firmware + VST |
 | **Carte MIDI, lue** | [`MIDI_MAP.md`](MIDI_MAP.md) — 23 CC + le pitch |
 | **Cohérence** | `tools/check_map.py` (firmware) et `tools/gen_device_profile.py` (plugin) |
-| **Calibration** | [`CALIBRATION.md`](CALIBRATION.md) — échelle reprise de la v1, rien à régler |
+| **Calibration** | [`CALIBRATION.md`](CALIBRATION.md) — **pitch vérifié à l'accordeur**, juste |
 | **Firmware** | `KobolMidiCV/` — **téléversé** sur le Teensy (22 % flash, 20 % RAM) |
 | **VST** | profil Kobol dans NiDMI Seq — [`INTEGRATION.md`](INTEGRATION.md) |
 | **Séquenceur** | pas commencé |
@@ -75,9 +75,9 @@ Le firmware est en **arithmétique entière** : l'ATmega32U4 n'a pas de FPU et
 
 ### D'abord
 
-1. **Téléverser**, puis vérifier que le pitch sonne comme avec la v1 : l'échelle
-   en est reprise à l'identique, vérifiée au millivolt près sur toute la plage
-   MIDI. Puis contrôler que CC 74 pilote bien le cutoff.
+1. ~~Vérifier le pitch~~ — **fait**, contrôlé à l'accordeur depuis Live le
+   12 août 2026 : les notes sont justes.
+2. **Contrôler que CC 74 pilote bien le cutoff.**
 
 ### Si un jour on branche le connecteur P1
 

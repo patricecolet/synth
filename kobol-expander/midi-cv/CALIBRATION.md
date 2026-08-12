@@ -1,8 +1,12 @@
 # Calibration
 
+> **Vérifié le 12 août 2026** : notes jouées depuis Ableton Live, contrôlées à
+> l'accordeur. L'accord est juste. `cal_mv_per_octave = 400` est donc confirmé
+> par la mesure, plus seulement hérité de la v1.
+
 Le firmware reprend l'échelle de pitch de la v1, qui tourne dans le Teensy et
-sonne juste. Il n'y a donc **rien à régler pour démarrer** — cette page sert à
-confirmer l'accord, et à savoir quoi toucher si un jour ça dérive.
+sonne juste. Il n'y a donc **rien à régler** — cette page sert à savoir quoi
+toucher si un jour ça dérive, et documente les autres paramètres.
 
 ## L'échelle vient de la v1, qui fonctionne
 
@@ -31,12 +35,16 @@ rattraper si ton exemplaire diffère.
 
 Il faut un accordeur (ou un accordeur logiciel dans le DAW) et un clavier MIDI.
 
-### 1. Vérifier le repos
+### 1. Connaître l'état de départ
 
-Au démarrage, le firmware met le canal A à 0 mV et n'écrit sur aucun autre
-paramètre tant qu'un CC n'est pas arrivé. Le Kobol doit sonner **exactement**
-comme carte débranchée. Si un réglage saute au branchement, c'est que le CV
-n'est pas au repos — vérifier le câblage avant d'aller plus loin.
+Au démarrage, le firmware applique le `cc_default` de chaque paramètre, met le
+canal A du DAC à 0 mV (note de base) et le PWM du LFO à 0. Le Kobol part donc
+d'un état connu, **et non de ses potards** : le CV s'additionne à la façade,
+donc le branchement décale les réglages.
+
+Si ça gêne pour un paramètre donné, mettre son `cc_default` à 0 dans
+`output.cpp` — en sortie jack, c'est la valeur dont `ccToMv()` tire 0 mV, donc
+aucune contribution.
 
 ### 2. Mesurer l'octave réelle
 
