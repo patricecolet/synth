@@ -68,6 +68,7 @@ def build_json(data):
             "pos": e["pos"],
             "size": e["size"],
             "wired": bool(e["wired"]),
+            "default": int(e.get("default", 0)),
             "learn": e["learn"],
         })
     return _json.dumps(out, ensure_ascii=False, indent=2)
