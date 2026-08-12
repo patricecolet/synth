@@ -481,7 +481,7 @@
     "type": "knob | switch | selector — ce que le rendu doit dessiner.",
     "pos": "[x, y] normalises 0..1 sur le panneau entier. null = pas de controle physique (modulation logicielle).",
     "size": "Diametre, en fraction de la LARGEUR du panneau.",
-    "learn": "CC entrant remappe vers ce parametre. null = aucun. Renseigne par le mode Learn."
+    "learn": "CC entrant SUPPLEMENTAIRE remappe vers ce parametre. null = aucun. Le CC propre du parametre passe TOUJOURS a l'identique, sans avoir a l'ecrire ici : learn n'ajoute qu'une source de plus, il ne remplace pas. Un learn qui vise le CC propre d'un autre parametre le detourne — l'explicite l'emporte sur l'identite."
   },
   "panel": {
     "image": "kobol-expander.jpg",
