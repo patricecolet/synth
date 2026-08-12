@@ -18,7 +18,8 @@ Le reste de DeviceProfile.cpp est laisse intact.
     python3 tools/gen_device_profile.py            verifie et signale
     python3 tools/gen_device_profile.py --write    applique
 
-Chemin du plugin : $NIDMI_SEQ_VST, sinon ~/repo/nidmi-seq-vst.
+Chemin du plugin : $NIDMI_SEQ_VST, sinon ~/repo/nidmi-seq-vst — les trois
+depots sont voisins dans ~/repo.
 Si le depot est absent, le script le dit et sort en 0 : ce depot doit rester
 utilisable sans lui.
 """

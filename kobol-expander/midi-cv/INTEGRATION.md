@@ -85,7 +85,9 @@ les accesseurs — reste écrit à la main.
 
 ## Emplacement du dépôt du plugin
 
-`gen_device_profile.py` cherche `~/repo/nidmi-seq-vst`, surchargeable :
+Les trois dépôts sont voisins dans `~/repo/` : `synth`, `nidmi-seq-vst`,
+`nidmi-sequencer-core`. `gen_device_profile.py` cherche donc
+`~/repo/nidmi-seq-vst`, surchargeable :
 
 ```sh
 NIDMI_SEQ_VST=/ailleurs/nidmi-seq-vst python3 tools/gen_device_profile.py

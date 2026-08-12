@@ -113,10 +113,17 @@ Les fichiers écartés restent **sur le disque local**, seulement plus dans git.
 
 Ce dépôt ne contient pas tout l'écosystème. Deux voisins comptent :
 
-| Dépôt | Rôle |
-|---|---|
-| `~/repo/nidmi-seq-vst` | **NiDMI Seq**, séquenceur VST3/AU/Standalone. Porte le profil Kobol |
-| `~/repo/nidmi-sequencer-core` | moteur de séquencement, sans lien avec le Kobol |
+Les trois dépôts sont voisins :
+
+```
+~/repo/
+├── synth/                  ← celui-ci
+├── nidmi-seq-vst/          NiDMI Seq — séquenceur VST3/AU/Standalone, porte le profil Kobol
+└── nidmi-sequencer-core/   moteur de séquencement, sans lien avec le Kobol
+```
+
+`nidmi-seq-vst` exige que `nidmi-sequencer-core` soit son voisin direct : son
+CMake y va par un `add_subdirectory` relatif.
 
 Le seul fichier qui traverse la frontière est `midi-map.json`, d'où est
 **généré** le profil du plugin. Voir
