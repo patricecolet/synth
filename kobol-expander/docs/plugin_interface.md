@@ -1,3 +1,12 @@
+> **Document de septembre 2025, en partie dépassé.** L'interface plugin existe
+> désormais, mais pas sous la forme prévue ici : au lieu d'un plugin dédié, un
+> **profil d'appareil** a été ajouté au séquenceur NiDMI Seq, qui savait déjà
+> émettre des CC et faire des P-locks. Voir
+> [`../midi-cv/INTEGRATION.md`](../midi-cv/INTEGRATION.md).
+>
+> Reste valable : les maquettes d'interface, la réflexion sur JUCE, et l'idée
+> de retour bidirectionnel (non implémentée).
+
 # Interface Plugin - KobolExpanderControl
 
 ## 🎯 **Concept Plugin**

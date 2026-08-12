@@ -27,7 +27,9 @@
         "max": 900,
         "rest": 0
       },
-      "default": 90
+      "default": 90,
+      "short": "Cutoff",
+      "wired": true
     },
     {
       "cc": 71,
@@ -41,7 +43,9 @@
         "max": 610,
         "rest": 600
       },
-      "default": 0
+      "default": 0,
+      "short": "Reso",
+      "wired": false
     },
     {
       "cc": 73,
@@ -55,7 +59,9 @@
         "max": -1150,
         "rest": -520
       },
-      "default": 0
+      "default": 0,
+      "short": "VcfAtk",
+      "wired": false
     },
     {
       "cc": 75,
@@ -69,7 +75,9 @@
         "max": -360,
         "rest": -1270
       },
-      "default": 40
+      "default": 40,
+      "short": "VcfDec",
+      "wired": false
     },
     {
       "cc": 102,
@@ -83,7 +91,9 @@
         "max": 920,
         "rest": 440
       },
-      "default": 90
+      "default": 90,
+      "short": "VcfSus",
+      "wired": false
     },
     {
       "cc": 103,
@@ -97,7 +107,9 @@
         "max": 600,
         "rest": 590
       },
-      "default": 64
+      "default": 64,
+      "short": "AdsCtl",
+      "wired": false
     },
     {
       "cc": 105,
@@ -111,7 +123,9 @@
         "max": -280,
         "rest": -500
       },
-      "default": 0
+      "default": 0,
+      "short": "VcaAtk",
+      "wired": false
     },
     {
       "cc": 106,
@@ -125,7 +139,9 @@
         "max": -1170,
         "rest": -90
       },
-      "default": 40
+      "default": 40,
+      "short": "VcaDec",
+      "wired": false
     },
     {
       "cc": 107,
@@ -139,7 +155,9 @@
         "max": 940,
         "rest": 460
       },
-      "default": 100
+      "default": 100,
+      "short": "VcaSus",
+      "wired": false
     },
     {
       "cc": 109,
@@ -153,7 +171,9 @@
         "max": 610,
         "rest": 600
       },
-      "default": 100
+      "default": 100,
+      "short": "Vol2",
+      "wired": false
     },
     {
       "cc": 108,
@@ -167,7 +187,9 @@
         "max": 600,
         "rest": 0
       },
-      "default": 100
+      "default": 100,
+      "short": "Vol1",
+      "wired": false
     },
     {
       "cc": 112,
@@ -181,7 +203,9 @@
         "max": 0,
         "rest": 0
       },
-      "default": 0
+      "default": 0,
+      "short": "Wave1",
+      "wired": false
     },
     {
       "cc": 113,
@@ -195,7 +219,9 @@
         "max": 0,
         "rest": 0
       },
-      "default": 0
+      "default": 0,
+      "short": "Wave2",
+      "wired": false
     }
   ],
   "modulation": [
@@ -206,14 +232,20 @@
       "target": "PWM Teensy pin 10",
       "implemented": true,
       "default": 0,
-      "_comment": "Sortie PWM et non DAC : hors de PARAMS[] dans le firmware, sinon paramIndexForCC() l'intercepterait et le handler ne serait jamais atteint."
+      "_comment": "Sortie PWM et non DAC : hors de PARAMS[] dans le firmware, sinon paramIndexForCC() l'intercepterait et le handler ne serait jamais atteint.",
+      "short": "LfoRate",
+      "group": "LFO",
+      "wired": true
     },
     {
       "cc": 1,
       "name": "Mod Wheel",
       "range": "0-127",
       "target": "profondeur LFO",
-      "implemented": false
+      "implemented": false,
+      "short": "Mod",
+      "group": "Mod",
+      "wired": false
     },
     {
       "cc": 5,
@@ -221,42 +253,60 @@
       "range": "0-127",
       "unit": "×10 ms",
       "implemented": true,
-      "default": 0
+      "default": 0,
+      "short": "Porta",
+      "group": "Mod",
+      "wired": true
     },
     {
       "cc": 65,
       "name": "Portamento On/Off",
       "range": "switch",
       "implemented": true,
-      "default": 127
+      "default": 127,
+      "short": "PortSw",
+      "group": "Mod",
+      "wired": true
     },
     {
       "cc": 114,
-      "name": "Velocity to Cutoff On",
+      "name": "Velocite > Cutoff (on)",
       "range": "0-127",
       "implemented": true,
-      "default": 0
+      "default": 0,
+      "short": "VelCutN",
+      "group": "Mod",
+      "wired": true
     },
     {
       "cc": 115,
-      "name": "Velocity to Cutoff Off",
+      "name": "Velocite > Cutoff (off)",
       "range": "0-127",
       "implemented": true,
-      "default": 0
+      "default": 0,
+      "short": "VelCutF",
+      "group": "Mod",
+      "wired": true
     },
     {
       "cc": 116,
-      "name": "Velocity to VCA",
+      "name": "Velocite > VCA",
       "range": "0-127",
       "implemented": true,
-      "default": 0
+      "default": 0,
+      "short": "VelVca",
+      "group": "Mod",
+      "wired": false
     },
     {
       "cc": 118,
-      "name": "Gate Force",
+      "name": "Gate force",
       "range": "switch",
       "implemented": true,
-      "default": 0
+      "default": 0,
+      "short": "Gate",
+      "group": "Mod",
+      "wired": true
     }
   ],
   "states": {
@@ -268,5 +318,10 @@
     "p1_pin_2": "rail -14,5 V, ne jamais y connecter de sortie",
     "p1_pin_13": "VCO1 Frequency, réglage manuel par choix"
   },
-  "_startup": "Le firmware applique le champ 'default' de chaque parametre au demarrage. Le CV s'additionne au potard de facade : ces valeurs decalent donc le reglage du Kobol des la mise sous tension."
+  "_startup": "Le firmware applique le champ 'default' de chaque parametre au demarrage. Le CV s'additionne au potard de facade : ces valeurs decalent donc le reglage du Kobol des la mise sous tension.",
+  "_fields": {
+    "short": "Nom court (<= 7 car.) pour les zones etroites du VST.",
+    "group": "VCF / VCA / VCO / LFO / Mod — regroupement d'affichage.",
+    "wired": "Le parametre a-t-il un effet AUDIBLE aujourd'hui ? Pas « decrit dans la table » : CC 116 module le VCA Sustain, qui n'a pas de sortie, donc false."
+  }
 }

@@ -26,10 +26,10 @@ DAW / VST ─ USB MIDI ─ Teensy 2.0 ─ SPI ─ MCP4822 ─┬─ canal A ─ 
 |---|---|
 | **Carte MIDI, lisible** | [`midi-map.json`](midi-map.json) — source unique firmware + VST |
 | **Carte MIDI, lue** | [`MIDI_MAP.md`](MIDI_MAP.md) — 23 CC + le pitch |
-| **Cohérence** | `python3 tools/check_map.py` |
+| **Cohérence** | `tools/check_map.py` (firmware) et `tools/gen_device_profile.py` (plugin) |
 | **Calibration** | [`CALIBRATION.md`](CALIBRATION.md) — échelle reprise de la v1, rien à régler |
 | **Firmware** | `KobolMidiCV/` — **téléversé** sur le Teensy (22 % flash, 20 % RAM) |
-| **VST** | pas commencé |
+| **VST** | profil Kobol dans NiDMI Seq — [`INTEGRATION.md`](INTEGRATION.md) |
 | **Séquenceur** | pas commencé |
 
 ## Ce que le câblage actuel permet

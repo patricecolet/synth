@@ -1,3 +1,9 @@
+> **Travail actif : [`midi-cv/`](midi-cv/)** — firmware Teensy 2.0 qui compile
+> et tourne, carte MIDI partagée avec le séquenceur NiDMI Seq
+> ([`midi-cv/INTEGRATION.md`](midi-cv/INTEGRATION.md)), calibration mesurée.
+> `v1-first-release/` reste la référence et n'est pas modifié.
+> Le plan des cinq versions est dans [`VERSIONS.md`](VERSIONS.md).
+
 # KobolExpanderControl - Projet Principal
 
 ## Vision du Projet
@@ -78,8 +84,3 @@ KobolExpanderControl/
 ---
 *Projet ambitieux pour la communauté des synthés vintage*
 
-## Travail en cours
-
-Le firmware actif est dans [`midi-cv/`](midi-cv/) — carte MIDI dans
-[`midi-cv/MIDI_MAP.md`](midi-cv/MIDI_MAP.md). `v1-first-release/` reste la
-référence fonctionnelle et n'est pas modifié.

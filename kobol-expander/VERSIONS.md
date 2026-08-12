@@ -1,5 +1,18 @@
 # KobolExpanderControl - Guide des Versions
 
+> **Ce guide décrit un plan de 2025.** Le travail actif est aujourd'hui dans
+> [`midi-cv/`](midi-cv/) : firmware Teensy 2.0 qui tourne, carte MIDI partagée
+> avec le séquenceur NiDMI Seq, calibration mesurée. Les cinq versions
+> ci-dessous restent la feuille de route à long terme, mais seules **v1** (qui
+> fonctionne) et **v2** (schémas KiCad) contiennent quelque chose.
+>
+> | Dossier | Contenu réel |
+> |---|---|
+> | [`midi-cv/`](midi-cv/) | **firmware actif**, carte MIDI, outils, intégration VST |
+> | [`v1-first-release/`](v1-first-release/) | le firmware d'origine, référence intouchée |
+> | [`v2-simple/`](v2-simple/) | projet KiCad `kobol_V2`, pas de code |
+> | `v3` / `v4` / `v5` | documentation de vision uniquement |
+
 ## 📁 **Structure Projet**
 
 ### **5 Versions Distinctes :**

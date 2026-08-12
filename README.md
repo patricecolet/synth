@@ -11,7 +11,7 @@ schémas, firmware et patchs vivent dans le même dossier.
 | Dossier | Quoi |
 |---|---|
 | [`PS-101/`](PS-101/) | Le synthé principal : carte mère, VCO, VCF, mixeur d'ondes, firmware et UI Pd |
-| [`kobol-expander/`](kobol-expander/) | Interface MIDI pour RSF Kobol Expander — 5 versions, de V1 (fonctionnelle) à V5 (vision 8 voix) |
+| [`kobol-expander/`](kobol-expander/) | **Interface MIDI → CV pour RSF Kobol Expander.** Firmware Teensy qui tourne, piloté depuis le séquenceur NiDMI Seq |
 | [`sequencer/`](sequencer/) | Séquenceur à base de 74HC595 (KiCad, 2018) |
 | [`alimentation/`](alimentation/) | Alimentation symétrique LM723 / LM2596 + masse virtuelle |
 | [`xva1/`](xva1/) | Patchs Pd de contrôle pour le moteur XVA1 |
@@ -49,10 +49,29 @@ sketch : l'IDE Arduino exige qu'un sketch soit autonome.
 
 ### kobol-expander
 
-Voir [`kobol-expander/VERSIONS.md`](kobol-expander/VERSIONS.md) pour la
-comparaison des 5 versions, et [`kobol-expander/README.md`](kobol-expander/README.md)
-pour la vision d'ensemble. Seule **v1-first-release** contient du code qui tourne ;
-les autres sont au stade documentation / schémas.
+Le projet le plus actif. Un Teensy 2.0 reçoit du MIDI USB et sort du CV vers
+le Kobol via un MCP4822 — pitch sur le canal A, cutoff du filtre sur le canal B.
+
+```
+kobol-expander/
+├── midi-cv/            # le travail actif
+│   ├── KobolMidiCV/    firmware Teensy (compile, téléversé)
+│   ├── midi-map.json   LA carte MIDI — fait foi pour tout le reste
+│   ├── build.sh        compile + téléverse, pose le nom USB « Kobol »
+│   ├── tools/          vérificateurs de cohérence, test MIDI sans DAW
+│   ├── INTEGRATION.md  lien avec le séquenceur NiDMI Seq
+│   └── CALIBRATION.md  échelle du pitch, mesurée
+├── v1-first-release/   firmware d'origine, référence intouchée
+├── v2-simple/          projet KiCad kobol_V2
+├── v3/v4/v5            documentation de vision
+└── docs/               mesures électriques du connecteur P1
+```
+
+**Le pilotage se fait depuis NiDMI Seq**, le séquenceur VST maison (dépôt
+voisin, voir plus bas), auquel on a ajouté un profil d'appareil pour qu'il
+affiche « VCF Cutoff » au lieu de « CC 74 ». Le détail, la frontière entre les
+deux dépôts et les garde-fous contre la dérive sont dans
+[`kobol-expander/midi-cv/INTEGRATION.md`](kobol-expander/midi-cv/INTEGRATION.md).
 
 Le brochage du connecteur P1 du Kobol est relevé dans
 [`reference/kobol/Plug.txt`](reference/kobol/Plug.txt).
@@ -82,6 +101,19 @@ versionnés, eux.
 Ces fichiers restent présents dans les deux premiers commits. Pour purger
 complètement l'historique avant une publication, il faudra réécrire les
 commits (`git filter-repo`), ce qui n'a pas été fait.
+
+## Dépôts voisins
+
+Ce dépôt ne contient pas tout l'écosystème. Deux voisins comptent :
+
+| Dépôt | Rôle |
+|---|---|
+| `~/repo/nidmi-seq-vst` | **NiDMI Seq**, séquenceur VST3/AU/Standalone. Porte le profil Kobol |
+| `~/repo/nidmi-sequencer-core` | moteur de séquencement, sans lien avec le Kobol |
+
+Le seul fichier qui traverse la frontière est `midi-map.json`, d'où est
+**généré** le profil du plugin. Voir
+[`kobol-expander/midi-cv/INTEGRATION.md`](kobol-expander/midi-cv/INTEGRATION.md).
 
 ## Conventions
 
