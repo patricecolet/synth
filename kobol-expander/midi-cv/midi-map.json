@@ -539,5 +539,12 @@
         ]
       }
     ]
+  },
+  "sync": {
+    "ccOnEdit": false,
+    "dump": "none",
+    "dumpFormat": null,
+    "dumpOverwritesStoredProgram": false,
+    "_comment": "Le Kobol n'a AUCUNE sortie MIDI : il n'emet rien quand on bouge un potard, et ne sait rien dumper. L'etat de l'editeur EST la verite, il n'y a rien a synchroniser. C'est le cas le plus simple, et celui de la plupart des synthes d'avant 1983."
   }
 }

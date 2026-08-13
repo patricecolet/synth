@@ -29,6 +29,8 @@ import os
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 BEGIN = "// >>> GENERE DEPUIS midi-map.json — NE PAS EDITER A LA MAIN"
 END = "// <<< FIN DU BLOC GENERE"
 
@@ -48,12 +50,13 @@ def entries(data):
 def build_json(data):
     """Le profil tel que le plugin le lira. Format v2 : panneau + positions +
     learn, en plus du nommage des CC."""
-    import json as _json
+    import jsoncompact
 
     out = {
         "schema": 2,
         "name": "Kobol Expander",
         "manufacturer": "RSF",
+        "sync": data["sync"],
         "panel": data["panel"],
         "pitch": data["pitch"],
         "parameters": [],
@@ -72,7 +75,7 @@ def build_json(data):
             "default": int(e.get("default", 0)),
             "learn": e["learn"],
         })
-    return _json.dumps(out, ensure_ascii=False, indent=2)
+    return jsoncompact.dumps(out).rstrip("\n")
 
 
 def build_block(data):
