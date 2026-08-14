@@ -147,3 +147,14 @@ réorganisation. Tout fichier écarté depuis reste récupérable :
 git show <commit>:<ancien/chemin>          # afficher
 git checkout <commit> -- <ancien/chemin>   # restaurer
 ```
+
+## Licence
+
+Le contenu de ce dépôt — firmwares, schémas KiCad, scripts, documentation —
+est publié sous licence [MIT](LICENSE).
+
+Cela ne couvre **que** ce qui est versionné ici. La documentation tierce
+(datasheets constructeur, manuels de service, schémas de synthés commerciaux)
+n'est pas redistribuable et reste volontairement hors du dépôt : elle est
+exclue par [`.gitignore`](.gitignore), et les sources sont listées dans les
+README des dossiers concernés.
