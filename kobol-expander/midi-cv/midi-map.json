@@ -540,6 +540,8 @@
       }
     ]
   },
+  "voices": 1,
+  "_voices_comment": "Kobol Expander : monophonique. C'est ce qui borne la densite du voicing cote sequenceur — a une voix, densite et ancrage n'ont pas d'objet et ne s'affichent pas.",
   "sync": {
     "ccOnEdit": false,
     "dump": "none",

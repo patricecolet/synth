@@ -56,6 +56,7 @@ def build_json(data):
         "schema": 2,
         "name": "Kobol Expander",
         "manufacturer": "RSF",
+        "voices": int(data.get("voices", 1)),
         "sync": data["sync"],
         "panel": data["panel"],
         "pitch": data["pitch"],
