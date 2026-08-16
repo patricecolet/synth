@@ -541,7 +541,7 @@
     ]
   },
   "voices": 1,
-  "_voices_comment": "Kobol Expander : monophonique. Polyphonie TOTALE de l'instrument ; sur un multitimbral elle se repartit entre les parties, donc ce n'est pas une borne par row. A une voix le cas est exact : pas d'accord possible, donc densite et ancrage ne s'affichent pas.",
+  "_voices_comment": "Kobol Expander : monophonique. Borne la densite du voicing cote sequenceur — a une voix, densite et ancrage ne s'affichent pas.",
   "sync": {
     "ccOnEdit": false,
     "dump": "none",
